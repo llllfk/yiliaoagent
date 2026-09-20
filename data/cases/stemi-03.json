@@ -1,0 +1,164 @@
+{
+  "code": "stemi-03",
+  "title": "急诊胸痛评估 · 急性前壁 STEMI",
+  "difficulty": "进阶级",
+  "targetMinutes": "20–25",
+  "patient": {
+    "name": "张三",
+    "age": 48,
+    "occupation": "物流搬运工",
+    "chief": "搬货时突发胸骨后压榨性疼痛约 2 小时，伴大汗、左肩放射"
+  },
+  "qaNodes": [
+    {
+      "id": "Q1",
+      "category": "主诉",
+      "intents": ["你怎么了", "哪里不舒服", "医生我哪儿不舒服"],
+      "answer": "大夫，我胸口疼，疼了两个钟头了！"
+    },
+    {
+      "id": "Q2",
+      "category": "疼痛部位",
+      "intents": ["哪里疼", "部位", "具体位置"],
+      "answer": "就在胸口正中间，巴掌大一块。"
+    },
+    {
+      "id": "Q3",
+      "category": "疼痛性质",
+      "intents": ["什么样的疼", "怎么个疼法", "性质"],
+      "answer": "像有块大石头压着，紧紧的，喘不过气来。"
+    },
+    {
+      "id": "Q4",
+      "category": "疼痛程度",
+      "intents": ["多疼", "几分", "程度"],
+      "answer": "十分里得有八九分，扛过那么多重货都没这么疼过。"
+    },
+    {
+      "id": "Q5",
+      "category": "放射痛",
+      "intents": ["串不串", "放射", "别的部位疼吗"],
+      "answer": "左边肩膀也疼，顺着胳膊麻到小手指。",
+      "critical": true
+    },
+    {
+      "id": "Q6",
+      "category": "起病时间",
+      "intents": ["多久了", "什么时候开始"],
+      "answer": "两个小时前搬货时突然开始的，一直疼到现在。"
+    },
+    {
+      "id": "Q7",
+      "category": "诱因与缓解",
+      "intents": ["怎么引起", "诱因", "含硝酸甘油有用吗"],
+      "answer": "干活儿干出来的。歇着不管用，含了硝酸甘油一点没用。",
+      "critical": true
+    },
+    {
+      "id": "Q8",
+      "category": "伴随·出汗",
+      "intents": ["出汗", "大汗", "伴随症状"],
+      "answer": "疼出一身透汗，秋衣都湿透了。"
+    },
+    {
+      "id": "Q9",
+      "category": "伴随·消化道",
+      "intents": ["恶心", "吐", "消化道症状"],
+      "answer": "恶心，吐了一回，就是干呕。"
+    },
+    {
+      "id": "Q10",
+      "category": "伴随·呼吸循环",
+      "intents": ["心慌", "气短", "咯血"],
+      "answer": "有点心慌，觉得气不够用。没有咯血。"
+    },
+    {
+      "id": "Q13",
+      "category": "既往史·高血压",
+      "intents": ["有什么病", "高血压", "既往史"],
+      "answer": "高血压十来年了，最高到 180。吃着氨氯地平但不规律。"
+    },
+    {
+      "id": "Q14",
+      "category": "既往史·糖尿病",
+      "intents": ["糖尿病", "血糖"],
+      "answer": "糖尿病五六年了，吃二甲双胍，血糖没好好查。"
+    },
+    {
+      "id": "Q16",
+      "category": "社会史",
+      "intents": ["抽烟", "吸烟"],
+      "answer": "烟龄 30 年，一天一包往上。"
+    },
+    {
+      "id": "Q18",
+      "category": "家族史",
+      "intents": ["家里人", "家族史"],
+      "answer": "我爸 60 岁那年得心梗没了。",
+      "critical": true
+    },
+    {
+      "id": "Q19",
+      "category": "安全史",
+      "intents": ["过敏", "吃什么药"],
+      "answer": "就吃氨氯地平和二甲双胍。没有药物过敏。",
+      "safety": true
+    }
+  ],
+  "exams": [
+    {
+      "id": "ecg",
+      "label": "心电图",
+      "costMinutes": 5,
+      "critical": true,
+      "result": "窦性心动过速；V1–V4 ST 段弓背向上抬高 0.3–0.5 mV（危急值）"
+    },
+    {
+      "id": "troponin",
+      "label": "肌钙蛋白",
+      "costMinutes": 30,
+      "result": "T+30：0.02 ng/mL（早期可阴性）；后续可升至正常值十倍以上"
+    },
+    {
+      "id": "cbc",
+      "label": "血常规",
+      "costMinutes": 15,
+      "result": "WBC 11.2×10^9/L"
+    },
+    {
+      "id": "ddimer",
+      "label": "凝血+D-二聚体",
+      "costMinutes": 15,
+      "result": "D-二聚体 0.35 mg/L（正常）"
+    },
+    {
+      "id": "biochem",
+      "label": "生化",
+      "costMinutes": 15,
+      "result": "GLU 11.8 mmol/L"
+    },
+    {
+      "id": "echo",
+      "label": "超声心动图",
+      "costMinutes": 15,
+      "result": "左室前壁运动减低，LVEF 45%"
+    }
+  ],
+  "physicalExam": {
+    "vitals": "T 36.5℃，P 102 次/分，R 22 次/分，BP 158/96 mmHg，SpO2 96%",
+    "general": "急性痛苦面容，半卧位，全身大汗",
+    "lung": "双肺呼吸音清",
+    "heart": "心音低钝",
+    "vessel": "双桡动脉搏动对称"
+  },
+  "decisionNodes": [
+    { "id": "P1", "name": "分诊分级", "hint": "胸痛伴大汗，考虑 II 级急症" },
+    { "id": "P2", "name": "心电图时间窗", "hint": "10 分钟内完成首份心电图" },
+    { "id": "P3", "name": "病史完整性", "hint": "覆盖核心问诊类别" },
+    { "id": "P4", "name": "鉴别诊断", "hint": "STEMI 首位；排查夹层/PE 等" },
+    { "id": "P5", "name": "初始药物治疗", "hint": "阿司匹林+替格瑞洛+低分子肝素" },
+    { "id": "P6", "name": "再灌注决策", "hint": "优先 PCI，D2B < 90 min" },
+    { "id": "P7", "name": "动态监测", "hint": "心电图与肌钙蛋白动态复查" },
+    { "id": "P8", "name": "循证表达", "hint": "引用指南名称、年份与时间目标" }
+  ]
+}

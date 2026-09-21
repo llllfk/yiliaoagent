@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { LogoutButton } from "@/components/shared/LogoutButton";
+import { TriageHeader } from "@/components/shared/TriageHeader";
 
 export default async function TeacherLayout({
   children,
@@ -17,16 +17,17 @@ export default async function TeacherLayout({
   if (user.role !== "teacher") redirect("/train");
 
   return (
-    <div className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-[var(--line)] bg-white/80 px-4 py-3 backdrop-blur">
-        <div>
-          <div className="text-sm font-semibold">ER-Think 教师看板</div>
-          <div className="text-xs text-[var(--muted)]">
-            {user.displayName}（{user.username}）
-          </div>
-        </div>
-        <LogoutButton />
-      </header>
+    <div className="app-shell">
+      <TriageHeader
+        roleLabel="教师端"
+        displayName={user.displayName}
+        username={user.username}
+        nav={[
+          { href: "/dashboard", label: "成绩看板" },
+          { href: "/cases", label: "病例导入" },
+          { href: "/students", label: "学生管理" },
+        ]}
+      />
       {children}
     </div>
   );

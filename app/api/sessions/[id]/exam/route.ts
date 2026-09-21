@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { fail, ok } from "@/lib/api";
 import { AuthError, requireSession } from "@/lib/auth";
 import { getCaseConfig } from "@/lib/er-think/cases";
+import { feedbackFromDelta, recomputeScores } from "@/lib/er-think/scoring";
 import { query } from "@/lib/db";
 import { safeJsonParse } from "@/lib/utils";
 import type { CaseConfig, SessionState } from "@/types";
@@ -34,7 +35,7 @@ export async function POST(
     const row = result.rows[0];
     if (!row || row.status !== "in_progress") return fail("会话不可用", 404);
 
-    const state = safeJsonParse<SessionState>(row.state, row.state as SessionState);
+    let state = safeJsonParse<SessionState>(row.state, row.state as SessionState);
     let caseConfig = safeJsonParse<CaseConfig>(
       row.case_config,
       row.case_config as CaseConfig
@@ -44,14 +45,18 @@ export async function POST(
     }
 
     if (body.action === "physical") {
-      state.simMinutes += 2;
+      const next = { ...state, examsOrdered: [...state.examsOrdered] };
+      next.simMinutes += 2;
+      const scored = recomputeScores(next, caseConfig.qaNodes || []);
+      const feedback = feedbackFromDelta(state, scored);
       await query(
         `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW() WHERE id = $2`,
-        [JSON.stringify(state), id]
+        [JSON.stringify(scored), id]
       );
       return ok({
         physicalExam: caseConfig.physicalExam,
-        state,
+        feedback,
+        state: scored,
       });
     }
 
@@ -71,17 +76,25 @@ export async function POST(
 
     const orderedAt = state.simMinutes;
     const readyAt = orderedAt + exam.costMinutes;
-    state.examsOrdered.push({
-      examId,
-      orderedAtMinute: orderedAt,
-      readyAtMinute: readyAt,
-      revealed: false,
-    });
-    state.simMinutes += 1;
+    const next: SessionState = {
+      ...state,
+      examsOrdered: [
+        ...state.examsOrdered,
+        {
+          examId,
+          orderedAtMinute: orderedAt,
+          readyAtMinute: readyAt,
+          revealed: false,
+        },
+      ],
+      simMinutes: state.simMinutes + 1,
+    };
+    const scored = recomputeScores(next, caseConfig.qaNodes || []);
+    const feedback = feedbackFromDelta(state, scored);
 
     await query(
       `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW() WHERE id = $2`,
-      [JSON.stringify(state), id]
+      [JSON.stringify(scored), id]
     );
 
     return ok({
@@ -89,10 +102,11 @@ export async function POST(
         examId,
         label: exam.label,
         readyAtMinute: readyAt,
-        resultPreview: state.simMinutes >= readyAt ? exam.result : "未回报",
+        resultPreview: scored.simMinutes >= readyAt ? exam.result : "未回报",
         critical: exam.critical || false,
       },
-      state,
+      feedback,
+      state: scored,
     });
   } catch (error) {
     if (error instanceof AuthError) {

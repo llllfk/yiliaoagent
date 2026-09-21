@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Card } from "@/components/ui/Card";
+import { EcgMark } from "@/components/shared/EcgMark";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,50 +38,109 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 p-6">
-      <div>
-        <p className="text-sm font-medium text-[var(--brand)]">ER-Think</p>
-        <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-          急诊临床思维训练
-        </h1>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          学生训练台 / 教师教学看板 · 云端网页
-        </p>
-      </div>
+    <main className="grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="relative hidden overflow-hidden bg-[var(--night)] px-10 py-12 text-slate-100 lg:flex lg:flex-col lg:justify-between">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-40"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(45,212,191,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(45,212,191,0.08) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+        <div className="relative animate-fade-up">
+          <div className="mb-6 flex items-center gap-3">
+            <span className="live-dot" />
+            <span className="font-mono text-xs tracking-[0.22em] text-teal-300/90">
+              EMERGENCY REASONING
+            </span>
+          </div>
+          <h1 className="font-display text-5xl leading-tight tracking-wide text-white">
+            ER-Think
+          </h1>
+          <p className="mt-4 max-w-md text-base leading-relaxed text-slate-300">
+            急诊临床思维训练台。在时间窗内完成问诊、检查与关键决策，按六维能力复盘。
+          </p>
+          <div className="mt-8">
+            <EcgMark />
+          </div>
+        </div>
+        <div className="relative grid max-w-lg grid-cols-3 gap-3 text-sm animate-fade-up">
+          {[
+            ["问诊", "渐进解锁"],
+            ["时钟", "指南时间窗"],
+            ["评测", "可追溯打分"],
+          ].map(([k, v]) => (
+            <div
+              key={k}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 backdrop-blur"
+            >
+              <div className="font-mono text-[10px] tracking-widest text-teal-300/80">
+                {k}
+              </div>
+              <div className="mt-1 text-slate-100">{v}</div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      <Card>
-        <form className="flex flex-col gap-3" onSubmit={onSubmit}>
-          <label className="text-sm">
-            账号
-            <Input
-              className="mt-1"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              autoComplete="username"
-            />
-          </label>
-          <label className="text-sm">
-            密码
-            <Input
-              className="mt-1"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-            />
-          </label>
-          {error ? (
-            <p className="text-sm text-[var(--danger)]">{error}</p>
-          ) : null}
-          <Button type="submit" disabled={loading}>
-            {loading ? "登录中…" : "登录"}
-          </Button>
-        </form>
-        <p className="mt-4 text-xs leading-relaxed text-[var(--muted)]">
-          初始化种子账号：教师 teacher / Teacher123! ；学生 student1 /
-          Student123!
-        </p>
-      </Card>
+      <section className="flex items-center justify-center p-6 sm:p-10">
+        <div className="w-full max-w-md animate-fade-up">
+          <div className="mb-8 lg:hidden">
+            <div className="font-display text-3xl text-[var(--ink)]">ER-Think</div>
+            <p className="mt-1 text-sm text-[var(--muted)]">急诊临床思维训练</p>
+          </div>
+
+          <div className="rounded-[var(--radius)] border border-[var(--line)] bg-[var(--panel-strong)] p-6 shadow-[var(--shadow)] sm:p-8">
+            <div className="mb-6">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--brand)]">
+                Sign in
+              </div>
+              <h2 className="mt-1 font-display text-2xl tracking-wide">进入训练系统</h2>
+              <p className="mt-2 text-sm text-[var(--muted)]">
+                学生进入训练台，教师进入教学看板
+              </p>
+            </div>
+
+            <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+              <label className="text-sm font-medium">
+                账号
+                <Input
+                  className="mt-1.5"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  autoComplete="username"
+                />
+              </label>
+              <label className="text-sm font-medium">
+                密码
+                <Input
+                  className="mt-1.5"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </label>
+              {error ? (
+                <p className="rounded-lg bg-[var(--crit-soft)] px-3 py-2 text-sm text-[var(--crit)]">
+                  {error}
+                </p>
+              ) : null}
+              <Button type="submit" className="mt-1 h-11" disabled={loading}>
+                {loading ? "登录中…" : "登录"}
+              </Button>
+            </form>
+
+            <div className="mt-6 rounded-lg border border-dashed border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-xs leading-relaxed text-[var(--muted)]">
+              演示账号：教师 <span className="font-mono text-[var(--ink)]">teacher</span> /
+              Teacher123! ；学生{" "}
+              <span className="font-mono text-[var(--ink)]">student1</span> /
+              Student123!
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

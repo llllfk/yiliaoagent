@@ -1,9 +1,10 @@
 import { fail, ok } from "@/lib/api";
 import { AuthError, requireSession } from "@/lib/auth";
-import { determineBranch, recomputeScores } from "@/lib/er-think/scoring";
+import { getCaseConfig } from "@/lib/er-think/cases";
+import { buildDebrief, recomputeScores } from "@/lib/er-think/scoring";
 import { query } from "@/lib/db";
 import { safeJsonParse } from "@/lib/utils";
-import { SCORE_MAX, type SessionState } from "@/types";
+import type { CaseConfig, SessionState } from "@/types";
 
 export async function POST(
   _request: Request,
@@ -13,40 +14,36 @@ export async function POST(
     const user = await requireSession(["student"]);
     const { id } = await params;
 
-    const result = await query<{ state: SessionState | string; status: string }>(
-      `SELECT state, status FROM training_sessions
-       WHERE tenant_id = $1 AND id = $2 AND user_id = $3 LIMIT 1`,
+    const result = await query<{
+      state: SessionState | string;
+      status: string;
+      case_code: string;
+      case_config: CaseConfig | string;
+    }>(
+      `SELECT s.state, s.status, c.code AS case_code, c.config AS case_config
+       FROM training_sessions s
+       JOIN cases c ON c.id = s.case_id
+       WHERE s.tenant_id = $1 AND s.id = $2 AND s.user_id = $3
+       LIMIT 1`,
       [user.tenantId, id, user.id]
     );
     const row = result.rows[0];
     if (!row) return fail("会话不存在", 404);
     if (row.status === "finished") return fail("会话已结束");
 
+    let caseConfig = safeJsonParse<CaseConfig>(
+      row.case_config,
+      row.case_config as CaseConfig
+    );
+    if (!caseConfig?.qaNodes?.length) {
+      caseConfig = getCaseConfig(row.case_code) || caseConfig;
+    }
+
     let state = safeJsonParse<SessionState>(row.state, row.state as SessionState);
-    state = recomputeScores(state);
-    state.branchPath = determineBranch(state);
+    state = recomputeScores(state, caseConfig?.qaNodes || []);
+    const report = buildDebrief(state);
+    state.branchPath = report.branchPath;
     state.finished = true;
-
-    const scoreTotal =
-      state.scores.TRI +
-      state.scores.INF +
-      state.scores.DIA +
-      state.scores.MAN +
-      state.scores.DYN +
-      state.scores.EBM;
-
-    const report = {
-      scores: state.scores,
-      max: SCORE_MAX,
-      total: scoreTotal,
-      branchPath: state.branchPath,
-      evidence: state.scoreEvidence,
-      suggestions: [
-        "补充非心源性胸痛鉴别清单",
-        "记录任何导致 D2B 延长的因素",
-        "强化社会史（烟酒）问诊覆盖",
-      ],
-    };
 
     await query(
       `UPDATE training_sessions
@@ -60,7 +57,7 @@ export async function POST(
        WHERE id = $5 AND tenant_id = $6`,
       [
         JSON.stringify(state),
-        scoreTotal,
+        report.total,
         JSON.stringify(report),
         state.branchPath,
         id,

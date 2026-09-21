@@ -3,6 +3,7 @@ import { fail, ok } from "@/lib/api";
 import { AuthError, requireSession } from "@/lib/auth";
 import { getCaseConfig } from "@/lib/er-think/cases";
 import { matchQaIntent } from "@/lib/er-think/qa-match";
+import { feedbackFromDelta, recomputeScores } from "@/lib/er-think/scoring";
 import { query } from "@/lib/db";
 import { safeJsonParse } from "@/lib/utils";
 import type { CaseConfig, SessionState } from "@/types";
@@ -35,7 +36,6 @@ export async function POST(
     const row = result.rows[0];
     if (!row || row.status !== "in_progress") return fail("会话不可用", 404);
 
-    const state = safeJsonParse<SessionState>(row.state, row.state as SessionState);
     let caseConfig = safeJsonParse<CaseConfig>(
       row.case_config,
       row.case_config as CaseConfig
@@ -43,6 +43,8 @@ export async function POST(
     if (!caseConfig?.qaNodes?.length) {
       caseConfig = getCaseConfig(row.case_code) as CaseConfig;
     }
+
+    let state = safeJsonParse<SessionState>(row.state, row.state as SessionState);
 
     const allAsked = state.unlockedQaIds.length >= caseConfig.qaNodes.length;
     const match = matchQaIntent(
@@ -81,6 +83,10 @@ export async function POST(
       at: new Date().toISOString(),
     });
 
+    const scored = recomputeScores(state, caseConfig.qaNodes || []);
+    const feedback = feedbackFromDelta(state, scored);
+    state = scored;
+
     await query(
       `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW()
        WHERE id = $2 AND tenant_id = $3`,
@@ -90,6 +96,7 @@ export async function POST(
     return ok({
       patientResponse: patientText,
       matchedQaId: match.hit ? match.node.id : null,
+      feedback,
       state,
     });
   } catch (error) {

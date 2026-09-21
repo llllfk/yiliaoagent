@@ -1,21 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
 
 export function LogoutButton() {
   const router = useRouter();
   return (
-    <Button
-      variant="ghost"
+    <button
       type="button"
+      className="header-action"
       onClick={async () => {
         await fetch("/api/auth/logout", { method: "POST" });
         router.replace("/login");
         router.refresh();
       }}
     >
-      退出
-    </Button>
+      退出登录
+    </button>
   );
 }

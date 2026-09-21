@@ -48,14 +48,53 @@ export function TeacherDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
+  const finishedCount = rows.filter((r) => r.status === "finished").length;
+
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4">
-      <Card title="筛选">
+    <div className="mx-auto flex max-w-6xl flex-col gap-4 p-4 animate-fade-up">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl tracking-wide">教学看板</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            查看班级训练记录；新增病例请使用「病例导入」
+          </p>
+        </div>
+        <Link href="/cases">
+          <Button type="button">病例导入</Button>
+        </Link>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card>
+          <div className="font-mono text-[10px] tracking-[0.16em] text-[var(--brand)]">
+            SESSIONS
+          </div>
+          <div className="mt-1 font-display text-3xl">{rows.length}</div>
+          <div className="text-xs text-[var(--muted)]">当前筛选记录数</div>
+        </Card>
+        <Card>
+          <div className="font-mono text-[10px] tracking-[0.16em] text-[var(--amber)]">
+            COMPLETED
+          </div>
+          <div className="mt-1 font-display text-3xl">{finishedCount}</div>
+          <div className="text-xs text-[var(--muted)]">已完成演练</div>
+        </Card>
+        <Card>
+          <div className="font-mono text-[10px] tracking-[0.16em] text-[var(--muted)]">
+            FILTER
+          </div>
+          <div className="mt-1 text-sm text-[var(--ink)]">
+            {status || "全部状态"} · {branch ? `Path ${branch}` : "全部结局"}
+          </div>
+        </Card>
+      </div>
+
+      <Card title="筛选条件" eyebrow="Filter">
         <div className="flex flex-wrap items-end gap-3">
           <label className="text-sm">
             状态
             <select
-              className="mt-1 block rounded-md border border-[var(--line)] px-2 py-2"
+              className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
             >
@@ -67,7 +106,7 @@ export function TeacherDashboard() {
           <label className="text-sm">
             结局
             <select
-              className="mt-1 block rounded-md border border-[var(--line)] px-2 py-2"
+              className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2"
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
             >
@@ -82,40 +121,52 @@ export function TeacherDashboard() {
             刷新
           </Button>
         </div>
-        {error ? <p className="mt-2 text-sm text-[var(--danger)]">{error}</p> : null}
+        {error ? (
+          <p className="mt-2 text-sm text-[var(--danger)]">{error}</p>
+        ) : null}
       </Card>
 
-      <Card title="班级训练记录">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="border-b border-[var(--line)] text-[var(--muted)]">
+      <Card title="班级训练记录" eyebrow="Roster">
+        <div className="overflow-x-auto rounded-xl border border-[var(--line)]">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="py-2 pr-3">学生</th>
-                <th className="py-2 pr-3">病例</th>
-                <th className="py-2 pr-3">状态</th>
-                <th className="py-2 pr-3">总分</th>
-                <th className="py-2 pr-3">结局</th>
-                <th className="py-2 pr-3">开始时间</th>
-                <th className="py-2">操作</th>
+                <th>学生</th>
+                <th>病例</th>
+                <th>状态</th>
+                <th>总分</th>
+                <th>结局</th>
+                <th>开始时间</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-b border-[var(--line)]/70">
-                  <td className="py-2 pr-3">
-                    {r.student_name}
-                    <div className="text-xs text-[var(--muted)]">{r.username}</div>
+                <tr key={r.id}>
+                  <td>
+                    <div className="font-medium">{r.student_name}</div>
+                    <div className="font-mono text-xs text-[var(--muted)]">
+                      {r.username}
+                    </div>
                   </td>
-                  <td className="py-2 pr-3">{r.case_title}</td>
-                  <td className="py-2 pr-3">{r.status}</td>
-                  <td className="py-2 pr-3">{r.score_total ?? "-"}</td>
-                  <td className="py-2 pr-3">{r.branch_path ?? "-"}</td>
-                  <td className="py-2 pr-3">
+                  <td>{r.case_title}</td>
+                  <td>
+                    <span
+                      className={`status-pill ${
+                        r.status === "finished" ? "done" : "running"
+                      }`}
+                    >
+                      {r.status === "finished" ? "已完成" : "进行中"}
+                    </span>
+                  </td>
+                  <td className="font-mono">{r.score_total ?? "-"}</td>
+                  <td className="font-mono">{r.branch_path ?? "-"}</td>
+                  <td className="text-xs text-[var(--muted)]">
                     {new Date(r.started_at).toLocaleString()}
                   </td>
-                  <td className="py-2">
+                  <td>
                     <Link
-                      className="text-[var(--brand)] underline"
+                      className="font-medium text-[var(--brand)] underline-offset-2 hover:underline"
                       href={`/sessions/${r.id}`}
                     >
                       详情
@@ -125,7 +176,7 @@ export function TeacherDashboard() {
               ))}
               {rows.length === 0 ? (
                 <tr>
-                  <td className="py-6 text-[var(--muted)]" colSpan={7}>
+                  <td className="py-8 text-[var(--muted)]" colSpan={7}>
                     暂无记录（请先用学生账号完成一次训练）
                   </td>
                 </tr>

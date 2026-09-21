@@ -1,16 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #f4f7fb;
-  --panel: #ffffff;
-  --ink: #152033;
-  --muted: #5b6b7c;
-  --line: #d7e0ea;
-  --brand: #0b6e4f;
-  --brand-soft: #e6f4ef;
+  --night: #0a1620;
+  --night-2: #122433;
+  --panel: #f5f8f7;
+  --panel-strong: #ffffff;
+  --ink: #12202c;
+  --muted: #5a6d78;
+  --line: #cfdad6;
+  --brand: #0f766e;
+  --brand-strong: #0d9488;
+  --brand-soft: #d8f3ef;
+  --amber: #c9850a;
+  --amber-soft: #fff4d9;
   --warn: #b45309;
-  --danger: #b91c1c;
-  --crit: #9f1239;
+  --danger: #b42318;
+  --crit: #c81e3a;
+  --crit-soft: #ffe4e8;
+  --ok: #15803d;
+  --ok-soft: #dcfce7;
+  --shadow: 0 10px 30px rgba(10, 22, 32, 0.08);
+  --radius: 12px;
+  --font-display: var(--font-display), "Noto Serif SC", serif;
+  --font-sans: var(--font-sans), "Noto Sans SC", "PingFang SC", sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
 }
 
 * {
@@ -21,9 +34,13 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: radial-gradient(circle at top left, #e8f2ff 0%, var(--bg) 42%, #eef6f2 100%);
   color: var(--ink);
-  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(ellipse 80% 50% at 0% 0%, rgba(13, 148, 136, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(201, 133, 10, 0.08), transparent 50%),
+    linear-gradient(165deg, #e8eef0 0%, #f3f6f5 45%, #e9f1ef 100%);
+  background-attachment: fixed;
 }
 
 a {
@@ -36,4 +53,245 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.triage-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.25rem;
+  color: #e8f2ef;
+  background:
+    linear-gradient(90deg, #071018 0%, #0f2430 55%, #12303a 100%);
+  border-bottom: 3px solid var(--brand-strong);
+  box-shadow: 0 8px 24px rgba(7, 16, 24, 0.25);
+}
+
+.header-action {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  width: 96px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8f2ef;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.header-action:hover {
+  border-color: rgba(94, 234, 212, 0.5);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.triage-header::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--crit) 0 12%,
+    var(--amber) 12% 28%,
+    var(--brand-strong) 28% 100%
+  );
+}
+
+.ecg-line {
+  height: 28px;
+  width: 120px;
+  overflow: hidden;
+  opacity: 0.85;
+}
+
+.ecg-line svg {
+  display: block;
+  width: 240px;
+  height: 28px;
+  animation: ecg-scroll 2.4s linear infinite;
+}
+
+@keyframes ecg-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-120px);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-strong);
+  box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.5);
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
+.score-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #e2eaea;
+  overflow: hidden;
+}
+
+.score-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--brand) 0%, var(--brand-strong) 100%);
+  transition: width 0.35s ease;
+}
+
+.monitor-clock {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--brand-strong);
+  text-shadow: 0 0 18px rgba(13, 148, 136, 0.25);
+}
+
+.chat-bubble-student {
+  background: var(--brand-soft);
+  border: 1px solid #b7e6de;
+}
+
+.chat-bubble-patient {
+  background: #eef2f4;
+  border: 1px solid var(--line);
+}
+
+.crit-card {
+  border-color: var(--crit) !important;
+  background: var(--crit-soft);
+}
+
+.node-chip {
+  min-width: 2.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  padding: 0.35rem 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: #eef2f1;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.node-chip.is-active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: white;
+}
+
+.node-chip.is-done {
+  background: var(--ok-soft);
+  border-color: #86efac;
+  color: var(--ok);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 0.75rem 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--line);
+  background: #eef4f2;
+}
+
+.data-table td {
+  padding: 0.75rem 0.75rem;
+  border-bottom: 1px solid #e4ece9;
+  vertical-align: middle;
+}
+
+.data-table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(13, 148, 136, 0.05);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-pill.done {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.status-pill.running {
+  background: var(--amber-soft);
+  color: #92620a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ecg-line svg,
+  .live-dot,
+  .animate-fade-up {
+    animation: none !important;
+  }
 }

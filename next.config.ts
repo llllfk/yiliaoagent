@@ -23,6 +23,21 @@ const contentSecurityPolicy = [
 const nextConfig: NextConfig = {
   // 禁止 standalone，Coze 使用 next start
   poweredByHeader: false,
+  // 避免 Coze CDN 对 (route-group) / [id] 路径编码后 chunk 404
+  async redirects() {
+    return [
+      {
+        source: "/sessions/:id(\\d+)",
+        destination: "/sessions?id=:id",
+        permanent: false,
+      },
+      {
+        source: "/history/:id(\\d+)",
+        destination: "/history/detail?id=:id",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

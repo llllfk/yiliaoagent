@@ -16,9 +16,12 @@ Coze（扣子）AI 编程兼容的 **Next.js 15 App Router** 全栈项目骨架�
 ```
 app/
   login/                 登录
-  (student)/train/       学生三列训练台
-  (teacher)/dashboard/   教师看板
-  (teacher)/sessions/[id] 训练详情
+  train/                 学生三列训练台
+  history/               学生训练记录（详情用 ?id=）
+  dashboard/             教师看板
+  cases/                 病例导入
+  students/              学生管理
+  sessions/              教师查看单次训练（?id=）
   api/                   REST API
 components/              UI 与业务组件
 lib/                     db / auth / er-think 引擎

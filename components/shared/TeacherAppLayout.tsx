@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { TriageHeader } from "@/components/shared/TriageHeader";
 
-export default async function TeacherLayout({
+export async function TeacherAppLayout({
   children,
 }: {
   children: React.ReactNode;

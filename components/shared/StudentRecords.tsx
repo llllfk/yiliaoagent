@@ -82,7 +82,7 @@ export function StudentRecords() {
                   </td>
                   <td>
                     <Link
-                      href={`/history/${row.id}`}
+                      href={`/history/detail?id=${row.id}`}
                       className="text-sm font-medium text-[var(--brand)] underline-offset-2 hover:underline"
                     >
                       查看

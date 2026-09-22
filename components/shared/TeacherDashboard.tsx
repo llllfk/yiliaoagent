@@ -167,7 +167,7 @@ export function TeacherDashboard() {
                   <td>
                     <Link
                       className="font-medium text-[var(--brand)] underline-offset-2 hover:underline"
-                      href={`/sessions/${r.id}`}
+                      href={`/sessions?id=${r.id}`}
                     >
                       详情
                     </Link>

@@ -9,6 +9,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const branch = searchParams.get("branch");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
 
     const params: unknown[] = [user.tenantId];
     let where = `WHERE s.tenant_id = $1`;
@@ -19,6 +21,14 @@ export async function GET(request: NextRequest) {
     if (branch) {
       params.push(branch);
       where += ` AND s.branch_path = $${params.length}`;
+    }
+    if (dateFrom) {
+      params.push(dateFrom);
+      where += ` AND s.started_at::date >= $${params.length}::date`;
+    }
+    if (dateTo) {
+      params.push(dateTo);
+      where += ` AND s.started_at::date <= $${params.length}::date`;
     }
 
     const result = await query(

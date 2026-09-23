@@ -60,6 +60,18 @@ export async function POST(request: NextRequest) {
     }
 
     const state = createInitialSessionState();
+    const cfgHint = getCaseConfig(caseCode);
+    const waveHint = cfgHint?.clinicalEvents?.length
+      ? `本案设计了 ${cfgHint.clinicalEvents.length} 波病情波动/恶化（约 T+${Math.min(
+          ...cfgHint.clinicalEvents.map((e) => e.afterMinute)
+        )} 起）。急诊病程很少一帆风顺：可能先加重、再短暂好转、再合并休克/心衰/呼吸衰竭等，请用「继续观察」推进时钟并及时处置。`
+      : "请按问诊—检查—决策推进训练；注意动态评估。";
+    state.chat.push({
+      role: "system",
+      text: waveHint,
+      at: new Date().toISOString(),
+    });
+
     const created = await query<{ id: string }>(
       `INSERT INTO training_sessions (tenant_id, user_id, case_id, status, state)
        VALUES ($1, $2, $3, 'in_progress', $4::jsonb)

@@ -6,12 +6,35 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { EcgMark } from "@/components/shared/EcgMark";
 
+const DEMO_ACCOUNTS = [
+  {
+    role: "教师",
+    label: "教师账号",
+    username: "teacher",
+    password: "Teacher123!",
+    hint: "进入教学看板",
+  },
+  {
+    role: "学生",
+    label: "学生账号",
+    username: "student1",
+    password: "Student123!",
+    hint: "进入训练台",
+  },
+] as const;
+
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState("teacher");
-  const [password, setPassword] = useState("Teacher123!");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function fillAccount(account: (typeof DEMO_ACCOUNTS)[number]) {
+    setUsername(account.username);
+    setPassword(account.password);
+    setError("");
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -102,6 +125,34 @@ export default function LoginPage() {
               </p>
             </div>
 
+            <div className="mb-5 grid grid-cols-2 gap-2">
+              {DEMO_ACCOUNTS.map((account) => {
+                const active = username === account.username;
+                return (
+                  <button
+                    key={account.username}
+                    type="button"
+                    onClick={() => fillAccount(account)}
+                    className={`rounded-xl border px-3 py-3 text-left transition ${
+                      active
+                        ? "border-[var(--brand)] bg-[var(--brand-soft)]"
+                        : "border-[var(--line)] bg-[var(--panel)] hover:border-[var(--brand)]"
+                    }`}
+                  >
+                    <div className="text-sm font-medium text-[var(--ink)]">
+                      {account.label}
+                    </div>
+                    <div className="mt-1 font-mono text-[11px] text-[var(--muted)]">
+                      {account.username}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-[var(--muted)]">
+                      {account.hint}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
             <form className="flex flex-col gap-4" onSubmit={onSubmit}>
               <label className="text-sm font-medium">
                 账号
@@ -110,6 +161,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
+                  placeholder="点击上方快捷填入，或手动输入"
                 />
               </label>
               <label className="text-sm font-medium">
@@ -120,6 +172,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
+                  placeholder="快捷填入后自动带出"
                 />
               </label>
               {error ? (
@@ -131,13 +184,6 @@ export default function LoginPage() {
                 {loading ? "登录中…" : "登录"}
               </Button>
             </form>
-
-            <div className="mt-6 rounded-lg border border-dashed border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-xs leading-relaxed text-[var(--muted)]">
-              演示账号：教师 <span className="font-mono text-[var(--ink)]">teacher</span> /
-              Teacher123! ；学生{" "}
-              <span className="font-mono text-[var(--ink)]">student1</span> /
-              Student123!
-            </div>
           </div>
         </div>
       </section>

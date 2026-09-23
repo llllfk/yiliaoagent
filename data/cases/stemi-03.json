@@ -13,94 +13,182 @@
     {
       "id": "Q1",
       "category": "主诉",
-      "intents": ["你怎么了", "哪里不舒服", "医生我哪儿不舒服"],
+      "intents": [
+        "你怎么了",
+        "哪里不舒服",
+        "医生我哪儿不舒服",
+        "怎么回事",
+        "什么情况"
+      ],
       "answer": "大夫，我胸口疼，疼了两个钟头了！"
     },
     {
       "id": "Q2",
       "category": "疼痛部位",
-      "intents": ["哪里疼", "部位", "具体位置"],
+      "intents": [
+        "哪里疼",
+        "部位",
+        "具体位置",
+        "胸口哪里",
+        "胸骨后"
+      ],
       "answer": "就在胸口正中间，巴掌大一块。"
     },
     {
       "id": "Q3",
       "category": "疼痛性质",
-      "intents": ["什么样的疼", "怎么个疼法", "性质"],
+      "intents": [
+        "什么样的疼",
+        "怎么个疼法",
+        "性质",
+        "压榨",
+        "撕裂样吗",
+        "闷痛"
+      ],
       "answer": "像有块大石头压着，紧紧的，喘不过气来。"
     },
     {
       "id": "Q4",
       "category": "疼痛程度",
-      "intents": ["多疼", "几分", "程度"],
+      "intents": [
+        "多疼",
+        "几分",
+        "程度",
+        "能不能忍受",
+        "多严重"
+      ],
       "answer": "十分里得有八九分，扛过那么多重货都没这么疼过。"
     },
     {
       "id": "Q5",
       "category": "放射痛",
-      "intents": ["串不串", "放射", "别的部位疼吗"],
+      "intents": [
+        "串不串",
+        "放射",
+        "别的部位疼吗",
+        "左肩",
+        "左臂",
+        "下颌",
+        "后背"
+      ],
       "answer": "左边肩膀也疼，顺着胳膊麻到小手指。",
       "critical": true
     },
     {
       "id": "Q6",
       "category": "起病时间",
-      "intents": ["多久了", "什么时候开始"],
+      "intents": [
+        "多久了",
+        "什么时候开始",
+        "持续多久",
+        "多长时间"
+      ],
       "answer": "两个小时前搬货时突然开始的，一直疼到现在。"
     },
     {
       "id": "Q7",
       "category": "诱因与缓解",
-      "intents": ["怎么引起", "诱因", "含硝酸甘油有用吗"],
+      "intents": [
+        "怎么引起",
+        "诱因",
+        "含硝酸甘油有用吗",
+        "休息能好吗",
+        "硝酸甘油"
+      ],
       "answer": "干活儿干出来的。歇着不管用，含了硝酸甘油一点没用。",
       "critical": true
     },
     {
       "id": "Q8",
       "category": "伴随·出汗",
-      "intents": ["出汗", "大汗", "伴随症状"],
+      "intents": [
+        "出汗",
+        "大汗",
+        "伴随症状",
+        "冷汗",
+        "湿冷"
+      ],
       "answer": "疼出一身透汗，秋衣都湿透了。"
     },
     {
       "id": "Q9",
       "category": "伴随·消化道",
-      "intents": ["恶心", "吐", "消化道症状"],
+      "intents": [
+        "恶心",
+        "吐",
+        "消化道症状",
+        "想吐",
+        "呕吐"
+      ],
       "answer": "恶心，吐了一回，就是干呕。"
     },
     {
       "id": "Q10",
       "category": "伴随·呼吸循环",
-      "intents": ["心慌", "气短", "咯血"],
+      "intents": [
+        "心慌",
+        "气短",
+        "咯血",
+        "喘不上气",
+        "呼吸困难"
+      ],
       "answer": "有点心慌，觉得气不够用。没有咯血。"
     },
     {
       "id": "Q13",
       "category": "既往史·高血压",
-      "intents": ["有什么病", "高血压", "既往史"],
+      "intents": [
+        "有什么病",
+        "高血压",
+        "既往史",
+        "慢性病",
+        "危险因素"
+      ],
       "answer": "高血压十来年了，最高到 180。吃着氨氯地平但不规律。"
     },
     {
       "id": "Q14",
       "category": "既往史·糖尿病",
-      "intents": ["糖尿病", "血糖"],
+      "intents": [
+        "糖尿病",
+        "血糖",
+        "二甲双胍"
+      ],
       "answer": "糖尿病五六年了，吃二甲双胍，血糖没好好查。"
     },
     {
       "id": "Q16",
       "category": "社会史",
-      "intents": ["抽烟", "吸烟"],
+      "intents": [
+        "抽烟",
+        "吸烟",
+        "烟酒",
+        "喝酒"
+      ],
       "answer": "烟龄 30 年，一天一包往上。"
     },
     {
       "id": "Q18",
       "category": "家族史",
-      "intents": ["家里人", "家族史"],
+      "intents": [
+        "家里人",
+        "家族史",
+        "父亲",
+        "冠心病",
+        "心梗家族"
+      ],
       "answer": "我爸 60 岁那年得心梗没了。",
       "critical": true
     },
     {
       "id": "Q19",
       "category": "安全史",
-      "intents": ["过敏", "吃什么药"],
+      "intents": [
+        "过敏",
+        "吃什么药",
+        "药物过敏",
+        "目前用药"
+      ],
       "answer": "就吃氨氯地平和二甲双胍。没有药物过敏。",
       "safety": true
     }
@@ -110,55 +198,562 @@
       "id": "ecg",
       "label": "心电图",
       "costMinutes": 5,
+      "costFee": 80,
       "critical": true,
-      "result": "窦性心动过速；V1–V4 ST 段弓背向上抬高 0.3–0.5 mV（危急值）"
+      "result": "窦性心动过速；V1–V4 ST 段弓背向上抬高 0.3–0.5 mV（危急值），提示急性前壁 STEMI，考虑左前降支（LAD）闭塞相关。STEMI 诊断主要靠症状+心电图，不应等待肌钙蛋白回报再决定再灌注。"
     },
     {
       "id": "troponin",
       "label": "肌钙蛋白",
       "costMinutes": 30,
-      "result": "T+30：0.02 ng/mL（早期可阴性）；后续可升至正常值十倍以上"
+      "costFee": 120,
+      "result": "T+30：0.02 ng/mL（早期可阴性）；后续可升至正常值十倍以上。早期阴性不能排除 STEMI，勿因等待化验延误血运重建。"
     },
     {
       "id": "cbc",
       "label": "血常规",
       "costMinutes": 15,
-      "result": "WBC 11.2×10^9/L"
+      "costFee": 35,
+      "result": "WBC 11.2×10^9/L，中性粒细胞比例偏高；Hb、血小板大致正常。"
     },
     {
       "id": "ddimer",
       "label": "凝血+D-二聚体",
       "costMinutes": 15,
-      "result": "D-二聚体 0.35 mg/L（正常）"
+      "costFee": 90,
+      "result": "D-二聚体 0.35 mg/L（正常），有助于降低急性肺栓塞可能性；凝血大致可接受抗栓治疗。"
     },
     {
       "id": "biochem",
       "label": "生化",
       "costMinutes": 15,
-      "result": "GLU 11.8 mmol/L"
+      "costFee": 60,
+      "result": "GLU 11.8 mmol/L；电解质与肾功能大致可查，注意糖尿病与围术期血糖管理。"
     },
     {
       "id": "echo",
       "label": "超声心动图",
       "costMinutes": 15,
-      "result": "左室前壁运动减低，LVEF 45%"
+      "costFee": 200,
+      "result": "左室前壁、前间壁运动减弱，LVEF 45%；未见明显心包积液。可辅助定位与评估泵功能，但不应替代紧急再灌注决策。"
+    },
+    {
+      "id": "cxr",
+      "label": "胸部X线",
+      "costMinutes": 20,
+      "costFee": 150,
+      "result": "肺野大致清晰；心影稍大。对已明确的 STEMI 再灌注决策帮助有限，增加辐射与等待。"
+    },
+    {
+      "id": "cta",
+      "label": "主动脉CTA",
+      "costMinutes": 45,
+      "costFee": 1200,
+      "result": "主动脉未见夹层。高辐射、高费用；STEMI 已明确时优先再灌注，而非常规加做 CTA（除非高度怀疑夹层）。"
     }
   ],
   "physicalExam": {
     "vitals": "T 36.5℃，P 102 次/分，R 22 次/分，BP 158/96 mmHg，SpO2 96%",
-    "general": "急性痛苦面容，半卧位，全身大汗",
-    "lung": "双肺呼吸音清",
-    "heart": "心音低钝",
-    "vessel": "双桡动脉搏动对称"
+    "general": "急性痛苦面容，半卧位，全身大汗；意识清",
+    "bp_bilateral": "双上肢血压基本对称（约 158/96），有助于降低主动脉夹层可疑度",
+    "lung": "双肺呼吸音清，未闻及明显干湿啰音",
+    "heart": "心率偏快，律齐，心音低钝，各瓣膜区未闻及明显杂音",
+    "vessel": "双桡动脉搏动对称；四肢尚温暖",
+    "abdomen": "腹软，无压痛、反跳痛"
   },
+  "baselineVitals": {
+    "temp": 36.5,
+    "hr": 102,
+    "rr": 22,
+    "bp": "158/96 mmHg",
+    "spo2": 96,
+    "pain": 8,
+    "consciousness": "清",
+    "note": "入室：急性痛苦面容，大汗"
+  },
+  "medicationOptions": [
+    {
+      "id": "asa",
+      "label": "阿司匹林 300mg 嚼服",
+      "essential": true
+    },
+    {
+      "id": "ticagrelor",
+      "label": "替格瑞洛 180mg 口服（或氯吡格雷负荷）",
+      "essential": true
+    },
+    {
+      "id": "heparin",
+      "label": "普通肝素静脉（或依诺肝素）",
+      "essential": true
+    },
+    {
+      "id": "statin",
+      "label": "阿托伐他汀 40–80mg",
+      "essential": true
+    },
+    {
+      "id": "ntg",
+      "label": "硝酸甘油（血压允许时）"
+    },
+    {
+      "id": "morphine",
+      "label": "吗啡止痛（剧痛且血压允许）"
+    },
+    {
+      "id": "beta-block",
+      "label": "静脉β阻滞剂强行降心率",
+      "trap": true
+    },
+    {
+      "id": "nsaid",
+      "label": "布洛芬等 NSAID 止痛",
+      "trap": true
+    }
+  ],
+  "scoringHints": {
+    "profile": "stemi",
+    "diagnosisKeywords": [
+      "STEMI",
+      "急性前壁",
+      "前壁心肌梗死",
+      "心肌梗死",
+      "急性冠脉综合征"
+    ],
+    "essentialMedNames": [
+      "阿司匹林",
+      "替格瑞洛",
+      "肝素",
+      "他汀"
+    ],
+    "recommendedStrategies": [
+      "直接 PCI",
+      "直接PCI",
+      "直接经皮冠状动脉介入",
+      "紧急再灌注"
+    ]
+  },
+  "strategyOptions": [
+    {
+      "id": "pci",
+      "label": "直接 PCI",
+      "desc": "首选方案，D2B / FMC-to-Balloon ≤90 分钟",
+      "recommended": true
+    },
+    {
+      "id": "thrombolysis",
+      "label": "静脉溶栓",
+      "desc": "预计 PCI 延迟 >120 分钟且无禁忌时的备选"
+    },
+    {
+      "id": "conservative",
+      "label": "仅药物保守，暂不血运重建",
+      "desc": "本例高危前壁 STEMI 不宜作为首选",
+      "trap": true
+    },
+    {
+      "id": "observe",
+      "label": "继续观察，等待肌钙蛋白回报再决定",
+      "desc": "STEMI 不应等待肌钙蛋白",
+      "trap": true
+    }
+  ],
   "decisionNodes": [
-    { "id": "P1", "name": "分诊分级", "hint": "胸痛伴大汗，考虑 II 级急症" },
-    { "id": "P2", "name": "心电图时间窗", "hint": "10 分钟内完成首份心电图" },
-    { "id": "P3", "name": "病史完整性", "hint": "覆盖核心问诊类别" },
-    { "id": "P4", "name": "鉴别诊断", "hint": "STEMI 首位；排查夹层/PE 等" },
-    { "id": "P5", "name": "初始药物治疗", "hint": "阿司匹林+替格瑞洛+低分子肝素" },
-    { "id": "P6", "name": "再灌注决策", "hint": "优先 PCI，D2B < 90 min" },
-    { "id": "P7", "name": "动态监测", "hint": "心电图与肌钙蛋白动态复查" },
-    { "id": "P8", "name": "循证表达", "hint": "引用指南名称、年份与时间目标" }
+    {
+      "id": "P1",
+      "name": "分诊分级",
+      "hint": "胸痛伴大汗、高危因素 → II 级急症；立即启动胸痛绿色通道，10 分钟内完成首份心电图"
+    },
+    {
+      "id": "P2",
+      "name": "心电图时间窗",
+      "hint": "FMC-to-ECG ≤10 分钟；前壁 STEMI 定位依据 V1–V4 ST 抬高"
+    },
+    {
+      "id": "P3",
+      "name": "病史完整性",
+      "hint": "覆盖 5W1H：部位/性质/程度/放射/时间/诱因缓解/伴随/既往/社会/过敏用药"
+    },
+    {
+      "id": "P4",
+      "name": "鉴别诊断",
+      "hint": "STEMI 首位；排查主动脉夹层、肺栓塞；补充胆绞痛/胃食管反流等非心源性胸痛"
+    },
+    {
+      "id": "P5",
+      "name": "初始药物治疗",
+      "hint": "抗栓三联：阿司匹林 300mg 嚼服 + 替格瑞洛 180mg + 低分子肝素；可补充强化他汀（如阿托伐他汀）"
+    },
+    {
+      "id": "P6",
+      "name": "再灌注决策",
+      "hint": "发病 <12h 且本院可 PCI → 优先直接 PCI（D2B/D1B <90min）；溶栓仅当无法及时 PCI"
+    },
+    {
+      "id": "P7",
+      "name": "动态监测",
+      "hint": "术前频繁复查生命体征/心电图；肌钙蛋白动态；警惕出血、造影剂肾病及心源性休克"
+    },
+    {
+      "id": "P8",
+      "name": "循证表达",
+      "hint": "引用指南名称+年份；复述 D1B/D2B <90 分钟及 PCI 优先依据"
+    }
+  ],
+  "knowledgeCards": [
+    {
+      "title": "STEMI 诊断三要素",
+      "items": [
+        "典型缺血性胸痛：胸骨后压榨样痛，持续 >20 分钟，休息或硝酸酯类不缓解",
+        "心电图：相邻导联 ST 段抬高（本例 V1–V4）",
+        "肌钙蛋白升高伴动态变化——但不应等待回报再决定再灌注"
+      ]
+    },
+    {
+      "title": "再灌注时间窗",
+      "items": [
+        "首选直接 PCI：发病 12 小时内，FMC-to-Balloon / D2B ≤90 分钟",
+        "溶栓替代：发病 <12 小时且预计 PCI 延迟 >120 分钟、无禁忌证",
+        "每延迟 1 分钟，心肌损失增加"
+      ]
+    },
+    {
+      "title": "急性期核心药物治疗",
+      "items": [
+        "双联抗血小板：阿司匹林 300mg 嚼服 + 替格瑞洛 180mg（或氯吡格雷负荷）",
+        "抗凝：普通肝素或低分子肝素",
+        "强化他汀尽早启动；硝酸甘油/吗啡仅在血压允许或剧痛时权衡使用"
+      ]
+    },
+    {
+      "title": "心源性休克处理要点",
+      "items": [
+        "识别：持续低血压、意识改变、皮肤湿冷、尿量减少等低灌注表现",
+        "关键：紧急血运重建（直接 PCI），必要时机械循环支持",
+        "辅助：适当补液、去甲肾上腺素等维持灌注；避免盲目加大硝酸甘油"
+      ]
+    }
+  ],
+  "complicationTeaching": {
+    "title": "病情恶化提示：心源性休克",
+    "signs": "等待/延误再灌注过程中可出现血压下降、意识模糊、皮肤湿冷、尿量减少、心率增快。",
+    "actions": "立即启动休克抢救：维持气道与灌注（抬高下肢、谨慎补液、去甲肾上腺素等）、紧急联系导管室行直接 PCI；床旁超声可评估泵功能。",
+    "wrongMoves": "继续观察、单纯加大硝酸甘油，或改为长时间等待溶栓效果，都会加重低灌注。"
+  },
+  "clinicalEvents": [
+    {
+      "id": "stemi-wave-1",
+      "title": "病情波动：胸痛再发加重",
+      "description": "入院评估过程中，患者胸痛再次加重，大汗淋漓，焦虑明显。急诊胸痛很少一帆风顺，需要立刻加快心电图与抗栓/再灌注路径。",
+      "severity": "warn",
+      "afterMinute": 5,
+      "skipIfDecisions": [
+        "P5",
+        "P6"
+      ],
+      "vitals": "P 110–120，BP 波动，SpO2 略降，疼痛评分升高",
+      "vitalsSnapshot": {
+        "hr": 118,
+        "bp": "150/92 mmHg",
+        "rr": 26,
+        "spo2": 94,
+        "pain": 9,
+        "consciousness": "清，焦虑",
+        "note": "胸痛再发加重，大汗"
+      },
+      "options": [
+        {
+          "id": "sw1-a",
+          "text": "立即复查生命体征，确认/复查心电图，加快抗栓与再灌注决策",
+          "correct": true
+        },
+        {
+          "id": "sw1-b",
+          "text": "先完成全部非紧急化验再处理胸痛",
+          "correct": false
+        },
+        {
+          "id": "sw1-c",
+          "text": "向患者说明风险，同时启动胸痛绿色通道相关处置",
+          "correct": true
+        },
+        {
+          "id": "sw1-d",
+          "text": "安慰「再忍忍」，继续常规问诊即可",
+          "correct": false
+        }
+      ],
+      "resolveOk": "第一波波动得到及时响应，为再灌注争取时间。",
+      "resolveBad": "延误关键路径，缺血负担加重。"
+    },
+    {
+      "id": "stemi-wave-2",
+      "title": "病情恶化：心源性休克",
+      "description": "一度处理后，患者突发意识变差、皮肤湿冷、尿量减少，监护显示血压持续下降、心率增快——提示心源性休克。即使抗栓/PCI 路径已启动，仍可能出现泵衰竭恶化。",
+      "severity": "critical",
+      "afterMinute": 14,
+      "afterEventId": "stemi-wave-1",
+      "vitals": "BP 70/45 mmHg，HR 110，意识模糊",
+      "vitalsSnapshot": {
+        "hr": 110,
+        "bp": "70/45 mmHg",
+        "rr": 28,
+        "spo2": 91,
+        "pain": 7,
+        "consciousness": "模糊",
+        "note": "皮肤湿冷，尿量减少——心源性休克"
+      },
+      "options": [
+        {
+          "id": "sw2-a",
+          "text": "立即启动心源性休克抢救：谨慎补液、去甲肾上腺素维持灌注，并紧急联系导管室行直接 PCI",
+          "correct": true
+        },
+        {
+          "id": "sw2-b",
+          "text": "继续观察，单纯加大硝酸甘油缓解胸痛",
+          "correct": false
+        },
+        {
+          "id": "sw2-c",
+          "text": "改为静脉溶栓并等待 1–2 小时观察效果",
+          "correct": false
+        },
+        {
+          "id": "sw2-d",
+          "text": "床旁评估循环/超声辅助判断，同时推进紧急血运重建",
+          "correct": true
+        }
+      ],
+      "resolveOk": "休克抢救与紧急再灌注并行，暂时稳住灌注。",
+      "resolveBad": "未优先血运重建或错误降压扩管，低灌注加重。"
+    },
+    {
+      "id": "stemi-wave-3",
+      "title": "再次恶化：合并急性左心衰竭倾向",
+      "description": "休克处理后一度好转，随后再次出现呼吸困难加重、肺部啰音增多，提示泵衰竭/急性左心衰方向演变。疾病过程常反反复复，需要持续动态评估。",
+      "severity": "critical",
+      "afterMinute": 24,
+      "afterEventId": "stemi-wave-2",
+      "vitals": "呼吸增快，SpO2 下降，肺部出现湿啰音，血压仍偏不稳",
+      "vitalsSnapshot": {
+        "hr": 120,
+        "bp": "88/56 mmHg",
+        "rr": 32,
+        "spo2": 88,
+        "pain": 6,
+        "consciousness": "烦躁",
+        "note": "肺部湿啰音增多，左心衰倾向"
+      },
+      "options": [
+        {
+          "id": "sw3-a",
+          "text": "半卧位、吸氧/必要时无创通气，评估容量与升压，继续推进血运重建",
+          "correct": true
+        },
+        {
+          "id": "sw3-b",
+          "text": "认为已经稳定，停止监测转普通病房",
+          "correct": false
+        },
+        {
+          "id": "sw3-c",
+          "text": "警惕机械并发症，必要时床旁超声并准备升级循环支持",
+          "correct": true
+        },
+        {
+          "id": "sw3-d",
+          "text": "大剂量快速利尿并静脉 β 阻滞剂强行降心率",
+          "correct": false
+        }
+      ],
+      "resolveOk": "识别泵衰竭再恶化并调整呼吸循环支持，体现 DYN 能力。",
+      "resolveBad": "忽视再恶化，可能进展为严重肺水肿或循环崩溃。"
+    },
+    {
+      "id": "stemi-wave-4",
+      "title": "再次波动：再发胸痛 / 恶性心律失常风险",
+      "description": "左心衰倾向缓解后，患者再次出现胸痛加重，监护偶发室早、短阵室速倾向。STEMI 病程常反反复复：再缺血、再灌注损伤、心律失常可能接踵而来。",
+      "severity": "critical",
+      "afterMinute": 34,
+      "afterEventId": "stemi-wave-3",
+      "vitals": "胸痛再发，室早增多，血压波动",
+      "vitalsSnapshot": {
+        "hr": "室早 / 短阵室速倾向",
+        "bp": "102/68 mmHg",
+        "rr": 24,
+        "spo2": 93,
+        "pain": 8,
+        "consciousness": "清",
+        "note": "再发胸痛，恶性心律失常风险"
+      },
+      "options": [
+        {
+          "id": "sw4-a",
+          "text": "持续心电监护，准备除颤/抗心律失常，同时确认血运重建是否到位",
+          "correct": true
+        },
+        {
+          "id": "sw4-b",
+          "text": "认为手术已做完，停止监护回病房",
+          "correct": false
+        },
+        {
+          "id": "sw4-c",
+          "text": "复查心电图与电解质，评估再缺血并升级处理",
+          "correct": true
+        },
+        {
+          "id": "sw4-d",
+          "text": "仅口头安慰，不调整监测级别",
+          "correct": false
+        }
+      ],
+      "resolveOk": "识别再发缺血/心律失常风险并维持高危监护。",
+      "resolveBad": "过早降级监测，可能室颤或再梗。"
+    }
+  ],
+  "debriefNodes": [
+    {
+      "id": "dn-triage",
+      "title": "快速识别高危胸痛并完成 II 级分诊",
+      "type": "decision",
+      "decisionId": "P1",
+      "maxMinute": 5,
+      "evidence": "突发持续性胸骨后压榨痛、大汗、放射痛等高危特征；《急诊科建设与管理指南》要求紧急排除 ACS 等致死性疾病。",
+      "correctComment": "分诊为 II 级并启动胸痛绿色通道，为后续再灌注赢得时间。",
+      "wrongComment": "若按 III 级或普通胸痛候诊，将延误心电图和血运重建，显著增加死亡风险。"
+    },
+    {
+      "id": "dn-ecg",
+      "title": "10 分钟内完成 12 导联心电图",
+      "type": "exam",
+      "examId": "ecg",
+      "maxMinute": 10,
+      "evidence": "STEMI 诊疗指南：FMC-to-ECG ≤10 分钟；V1–V4 ST 抬高是前壁 STEMI 关键依据。",
+      "correctComment": "心电图是 STEMI 诊断和定位的核心，前壁导联改变提示左前降支病变。",
+      "wrongComment": "延迟或漏做心电图会导致 STEMI 漏诊，错过再灌注时间窗。"
+    },
+    {
+      "id": "dn-qa",
+      "title": "覆盖核心问诊（部位/性质/放射/诱因等）",
+      "type": "qa",
+      "minQa": 6,
+      "evidence": "系统采集 5W1H 与危险因素，是胸痛危险分层的基础。",
+      "correctComment": "问诊覆盖度达标，关键阳性史已获取。",
+      "wrongComment": "问诊节点偏少，可能遗漏放射痛、硝酸甘油无效等关键线索。"
+    },
+    {
+      "id": "dn-phys",
+      "title": "重点查体（生命体征/心肺/双侧血压）",
+      "type": "physical",
+      "physicalKeys": ["vitals", "heart", "lung", "bp_bilateral"],
+      "evidence": "双侧血压对称有助于降低夹层可疑度；心肺听诊协助评估泵功能与并发症。",
+      "correctComment": "已完成重点查体，体征信息支撑鉴别与监测。",
+      "wrongComment": "查体不足，可能漏掉低灌注、啰音或双侧血压差异等线索。"
+    },
+    {
+      "id": "dn-troponin",
+      "title": "检测心肌损伤标志物",
+      "type": "lab",
+      "examId": "troponin",
+      "evidence": "肌钙蛋白支持心肌坏死与危险分层；但 STEMI 诊断主要靠症状+心电图，不应等待回报再灌注。",
+      "correctComment": "已开立肌钙蛋白，有助于确诊与分层。",
+      "wrongComment": "未开立肌钙蛋白；或仅等待化验而延误再灌注，均存在问题。"
+    },
+    {
+      "id": "dn-meds",
+      "title": "急性期规范化药物治疗",
+      "type": "medication",
+      "medTokens": ["阿司匹林", "替格瑞洛", "肝素", "他汀"],
+      "evidence": "ACS 指南：双联抗血小板、抗凝及强化他汀是 STEMI 基石治疗。",
+      "correctComment": "及时给予 DAPT、抗凝及强化他汀可降低急性血栓事件风险。",
+      "wrongComment": "遗漏抗血小板或抗凝会增加血栓/再梗风险；延误他汀不利于斑块稳定。"
+    },
+    {
+      "id": "dn-pci",
+      "title": "再灌注策略选择",
+      "type": "strategy",
+      "strategyId": "pci",
+      "evidence": "中国 STEMI 指南：首选直接 PCI，目标 FMC-to-Balloon ≤90 分钟。",
+      "correctComment": "选择直接 PCI 作为最佳再灌注方案。",
+      "wrongComment": "在无禁忌情况下选择单纯保守或不当延迟，会显著增加休克与死亡风险。"
+    },
+    {
+      "id": "dn-shock",
+      "title": "心源性休克恶化处置",
+      "type": "event",
+      "eventId": "stemi-wave-2",
+      "evidence": "ACLS/ESC：心梗合并心源性休克需紧急血运重建，并维持灌注（谨慎补液、去甲肾上腺素等）。",
+      "correctComment": "正确识别休克并推进紧急 PCI 与循环支持。",
+      "wrongComment": "单纯加大硝酸甘油或长时间等待溶栓效果，会加重低灌注。"
+    }
+  ],
+  "standardPath": [
+    {
+      "id": "sp1",
+      "timeLabel": "T+0",
+      "standard": "分诊为 II 级急症，启动胸痛绿色通道",
+      "type": "decision",
+      "decisionId": "P1",
+      "maxMinute": 5
+    },
+    {
+      "id": "sp2",
+      "timeLabel": "T≤10",
+      "standard": "10 分钟内完成首份心电图",
+      "type": "exam",
+      "examId": "ecg",
+      "maxMinute": 10
+    },
+    {
+      "id": "sp3",
+      "timeLabel": "问诊",
+      "standard": "覆盖核心问诊（至少 6 个节点）",
+      "type": "qa",
+      "minQa": 6
+    },
+    {
+      "id": "sp4",
+      "timeLabel": "处置",
+      "standard": "抗栓三联（阿司匹林+替格瑞洛+肝素）写入 P5",
+      "type": "decision",
+      "decisionId": "P5"
+    },
+    {
+      "id": "sp5",
+      "timeLabel": "处置",
+      "standard": "优先直接 PCI（D2B/D1B <90 min）写入 P6",
+      "type": "decision",
+      "decisionId": "P6"
+    },
+    {
+      "id": "sp6",
+      "timeLabel": "T+5",
+      "standard": "处置第一波：胸痛再发加重",
+      "type": "event",
+      "eventId": "stemi-wave-1"
+    },
+    {
+      "id": "sp7",
+      "timeLabel": "T+14",
+      "standard": "处置心源性休克恶化",
+      "type": "event",
+      "eventId": "stemi-wave-2"
+    },
+    {
+      "id": "sp8",
+      "timeLabel": "T+24",
+      "standard": "识别并处理左心衰倾向再恶化",
+      "type": "event",
+      "eventId": "stemi-wave-3"
+    },
+    {
+      "id": "sp9",
+      "timeLabel": "T+34",
+      "standard": "再发胸痛/心律失常风险的持续监护处置",
+      "type": "event",
+      "eventId": "stemi-wave-4"
+    }
   ]
 }

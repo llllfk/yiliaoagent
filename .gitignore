@@ -26,3 +26,7 @@ yarn-error.log*
 # typescript
 next-env.d.ts
 *.tsbuildinfo
+
+# local/temp artifacts
+tmp/
+_db_init_out.txt

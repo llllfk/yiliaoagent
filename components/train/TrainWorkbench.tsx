@@ -4,9 +4,45 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { ToastStack, useToasts } from "@/components/ui/Toast";
 import { downloadDebrief } from "@/lib/debrief-doc";
-import type { BranchPath, CaseConfig, ScoreDimensions, SessionState } from "@/types";
+import { ecgTimeoutWarning } from "@/lib/er-think/scoring";
+import type { PathCompareRow } from "@/lib/er-think/path-compare";
+import { ScoreRadar } from "@/components/train/ScoreRadar";
+import { PathComparison } from "@/components/train/PathComparison";
+import { NodeReviews } from "@/components/train/NodeReviews";
+import { VitalsPanel } from "@/components/train/VitalsPanel";
+import {
+  medicationOptionsFromCase,
+  resolveCurrentVitals,
+  strategyOptionsFromCase,
+} from "@/lib/er-think/vitals";
+import {
+  physicalExamItems,
+  physicalExamLabel,
+  type NodeReviewRow,
+} from "@/lib/er-think/node-debrief";
+import type {
+  BranchPath,
+  CaseConfig,
+  ClinicalEvent,
+  ScoreDimensions,
+  SessionState,
+} from "@/types";
 import { SCORE_MAX, createInitialSessionState } from "@/types";
+
+function formatWallClock(ms: number) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function toastToneFromFeedback(text: string): "ok" | "warn" | "info" {
+  if (/超时|警告|延误|未新增|没有新增/.test(text)) return "warn";
+  if (/\+\d+|得分|命中|已记录/.test(text)) return "ok";
+  return "info";
+}
 
 const DIM_LABEL: Record<keyof ScoreDimensions, string> = {
   TRI: "分诊与时机",
@@ -31,7 +67,18 @@ type DebriefReport = {
   branchPath: BranchPath;
   outcome?: { title: string; text: string };
   evidence: Array<{ dim: keyof ScoreDimensions; points: number; rule: string; evidence: string }>;
+  comments?: Record<keyof ScoreDimensions, string>;
   suggestions: string[];
+  recommendedModules?: string[];
+  timeline?: Array<{
+    atMinute: number;
+    nodeId: string;
+    label: string;
+    ok: boolean;
+    note: string;
+  }>;
+  pathComparison?: PathCompareRow[];
+  nodeReviews?: NodeReviewRow[];
 };
 
 type OpenSession = {
@@ -73,8 +120,21 @@ export function TrainWorkbench() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [scoreNotice, setScoreNotice] = useState("");
+  const [timeoutNotice, setTimeoutNotice] = useState("");
   const [physical, setPhysical] = useState<Record<string, string> | null>(null);
   const [openSessions, setOpenSessions] = useState<OpenSession[]>([]);
+  const [eventPicks, setEventPicks] = useState<string[]>([]);
+  const [selectedMeds, setSelectedMeds] = useState<string[]>([]);
+  const [selectedStrategy, setSelectedStrategy] = useState<string>("");
+  const [wallStartedAt, setWallStartedAt] = useState<number | null>(null);
+  const [wallNow, setWallNow] = useState(() => Date.now());
+  const { toasts, pushToast, dismiss } = useToasts();
+
+  useEffect(() => {
+    if (!sessionId || state.finished || !wallStartedAt) return;
+    const t = window.setInterval(() => setWallNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [sessionId, state.finished, wallStartedAt]);
 
   async function loadOpenSessions() {
     const res = await fetch("/api/sessions");
@@ -105,6 +165,7 @@ export function TrainWorkbench() {
     setReport(null);
     setPhysical(null);
     setScoreNotice("");
+    setTimeoutNotice("");
     try {
       const caseRes = await fetch(`/api/cases/${encodeURIComponent(caseCode)}`);
       const caseJson = await caseRes.json();
@@ -129,7 +190,21 @@ export function TrainWorkbench() {
         const nextState =
           typeof raw === "string" ? (JSON.parse(raw) as SessionState) : raw;
         setSessionId(Number(session.id));
-        setState(nextState);
+        setState({
+          ...createInitialSessionState(),
+          ...nextState,
+          eventLog: nextState.eventLog || [],
+          physicalKeys: nextState.physicalKeys || [],
+          activeEventId: nextState.activeEventId ?? null,
+        });
+        setEventPicks([]);
+        const physAll = cfg.physicalExam || {};
+        const keys = nextState.physicalKeys || [];
+        setPhysical(
+          keys.length
+            ? Object.fromEntries(keys.map((k) => [k, physAll[k]]).filter(([, v]) => v))
+            : null
+        );
       } else {
         const startRes = await fetch("/api/sessions", {
           method: "POST",
@@ -145,6 +220,11 @@ export function TrainWorkbench() {
       setActiveNode("P1");
       setInput("");
       setReason("");
+      setSelectedMeds([]);
+      setSelectedStrategy("");
+      setEventPicks([]);
+      setWallStartedAt(Date.now());
+      setWallNow(Date.now());
     } catch (e) {
       setError(e instanceof Error ? e.message : "开始训练失败");
       setCaseConfig(null);
@@ -180,20 +260,125 @@ export function TrainWorkbench() {
     [state.scores]
   );
 
-  async function sendChat() {
-    if (!sessionId || !input.trim()) return;
+  const liveTimeout = useMemo(() => ecgTimeoutWarning(state), [state]);
+  const shownTimeout = timeoutNotice || liveTimeout || "";
+
+  const activeEvent: ClinicalEvent | null = useMemo(() => {
+    if (!caseConfig?.clinicalEvents || !state.activeEventId) return null;
+    return (
+      caseConfig.clinicalEvents.find((e) => e.id === state.activeEventId) || null
+    );
+  }, [caseConfig, state.activeEventId]);
+
+  useEffect(() => {
+    if (!activeEvent) return;
+    pushToast(
+      `${activeEvent.severity === "critical" ? "危急" : "波动"}：${activeEvent.title}`,
+      activeEvent.severity === "critical" ? "crit" : "warn",
+      4500
+    );
+    // 仅在事件 id 变化时弹出，避免重复刷屏
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEvent?.id]);
+
+  const currentVitals = useMemo(() => {
+    if (!caseConfig) return null;
+    return resolveCurrentVitals(caseConfig, state);
+  }, [caseConfig, state]);
+
+  const medOptions = useMemo(
+    () => (caseConfig ? medicationOptionsFromCase(caseConfig) : []),
+    [caseConfig]
+  );
+
+  const strategyOptions = useMemo(
+    () => (caseConfig ? strategyOptionsFromCase(caseConfig) : []),
+    [caseConfig]
+  );
+
+  const interviewPresets = useMemo(() => {
+    if (!caseConfig) return [];
+    return caseConfig.qaNodes.slice(0, 12).map((q) => ({
+      id: q.id,
+      label: q.category,
+      text: q.intents[0] || q.category,
+    }));
+  }, [caseConfig]);
+
+  const physItems = useMemo(
+    () => (caseConfig ? physicalExamItems(caseConfig) : []),
+    [caseConfig]
+  );
+
+  async function resolveEvent() {
+    if (!sessionId || eventPicks.length === 0) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/event`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optionIds: eventPicks }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "处置失败");
+      setState(json.data.state);
+      setScoreNotice(String(json.data.feedback || "已记录处置"));
+      if (json.data.feedback) {
+        pushToast(String(json.data.feedback), toastToneFromFeedback(String(json.data.feedback)));
+      }
+      setEventPicks([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "处置失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function advanceObserve() {
+    if (!sessionId) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/observe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ minutes: 8 }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "观察推进失败");
+      setState(json.data.state);
+      if (json.data.feedback) {
+        const fb = String(json.data.feedback);
+        setScoreNotice(fb);
+        pushToast(fb, toastToneFromFeedback(fb));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "观察推进失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendChat(presetText?: string) {
+    const message = (presetText ?? input).trim();
+    if (!sessionId || !message) return;
     setBusy(true);
     setError("");
     try {
       const res = await fetch(`/api/sessions/${sessionId}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input }),
+        body: JSON.stringify({ message }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "问诊失败");
       setState(json.data.state);
-      if (json.data.feedback) setScoreNotice(String(json.data.feedback));
+      if (json.data.feedback) {
+        const fb = String(json.data.feedback);
+        setScoreNotice(fb);
+        pushToast(fb, toastToneFromFeedback(fb));
+      }
       setInput("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "问诊失败");
@@ -214,7 +399,17 @@ export function TrainWorkbench() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "开立失败");
       setState(json.data.state);
-      if (json.data.feedback) setScoreNotice(String(json.data.feedback));
+      if (json.data.feedback) {
+        const fb = String(json.data.feedback);
+        setScoreNotice(fb);
+        pushToast(fb, toastToneFromFeedback(fb));
+      }
+      if (json.data.timeoutWarning) {
+        const tw = String(json.data.timeoutWarning);
+        setTimeoutNotice(tw);
+        pushToast(tw, "warn", 4500);
+      }
+      if (json.data.message) setScoreNotice(String(json.data.message));
     } catch (e) {
       setError(e instanceof Error ? e.message : "开立失败");
     } finally {
@@ -222,19 +417,30 @@ export function TrainWorkbench() {
     }
   }
 
-  async function doPhysical() {
+  async function doPhysical(key?: string) {
     if (!sessionId) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/sessions/${sessionId}/exam`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "physical" }),
+        body: JSON.stringify({
+          action: "physical",
+          ...(key ? { key } : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "查体失败");
-      setPhysical(json.data.physicalExam);
+      const revealed =
+        (json.data.revealed as Record<string, string> | undefined) ||
+        (json.data.physicalExam as Record<string, string>);
+      setPhysical(revealed);
       setState(json.data.state);
+      if (json.data.feedback) {
+        const fb = String(json.data.feedback);
+        setScoreNotice(fb);
+        pushToast(fb, toastToneFromFeedback(fb));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "查体失败");
     } finally {
@@ -244,18 +450,57 @@ export function TrainWorkbench() {
 
   async function submitDecision() {
     if (!sessionId) return;
+    const labels = medOptions
+      .filter((m) => selectedMeds.includes(m.id))
+      .map((m) => m.label);
+    const strat = strategyOptions.find((s) => s.id === selectedStrategy);
+    let composedReason = reason;
+    if (activeNode === "P5" && labels.length > 0) {
+      composedReason = `已选用：${labels.join("、")}${
+        reason.trim() ? `\n补充：${reason.trim()}` : ""
+      }`;
+    } else if (activeNode === "P6" && strat) {
+      composedReason = `再灌注策略：${strat.label}${
+        strat.desc ? `（${strat.desc}）` : ""
+      }${reason.trim() ? `\n补充：${reason.trim()}` : ""}`;
+    }
+    if (!composedReason.trim()) {
+      setError(
+        activeNode === "P5"
+          ? "请勾选药物或填写决策理由"
+          : activeNode === "P6"
+            ? "请选择策略或填写决策理由"
+            : "请填写决策理由"
+      );
+      return;
+    }
     setBusy(true);
+    setError("");
     try {
       const res = await fetch(`/api/sessions/${sessionId}/decision`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nodeId: activeNode, reason }),
+        body: JSON.stringify({
+          nodeId: activeNode,
+          reason: composedReason,
+          medicationIds: activeNode === "P5" ? selectedMeds : undefined,
+          strategyId: activeNode === "P6" ? selectedStrategy || undefined : undefined,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "决策失败");
       setState(json.data.state);
-      setScoreNotice(String(json.data.feedback || "已记录。"));
+      const fb = String(json.data.feedback || "已记录。");
+      setScoreNotice(fb);
+      pushToast(fb, toastToneFromFeedback(fb));
+      if (json.data.timeoutWarning) {
+        const tw = String(json.data.timeoutWarning);
+        setTimeoutNotice(tw);
+        pushToast(tw, "warn", 4500);
+      }
       setReason("");
+      if (activeNode === "P5") setSelectedMeds([]);
+      if (activeNode === "P6") setSelectedStrategy("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "决策失败");
     } finally {
@@ -362,6 +607,7 @@ export function TrainWorkbench() {
 
   return (
     <div className="mx-auto grid max-w-[1440px] gap-4 p-4 lg:grid-cols-[260px_1fr]">
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
       <aside className="space-y-4 animate-fade-up">
         <Card title="病例卡" eyebrow="Case">
           <div className="space-y-2 text-sm">
@@ -389,7 +635,59 @@ export function TrainWorkbench() {
                 T+{state.simMinutes}
                 <span className="ml-1 text-base text-teal-200/70">min</span>
               </div>
+              <div className="mt-2 border-t border-teal-800/60 pt-2">
+                <div className="font-mono text-[10px] tracking-[0.16em] text-teal-300/70">
+                  WALL
+                </div>
+                <div className="wall-clock font-mono text-lg text-teal-100">
+                  {wallStartedAt
+                    ? formatWallClock(wallNow - wallStartedAt)
+                    : "00:00"}
+                  {state.finished ? (
+                    <span className="ml-1 text-xs text-teal-300/70">结束</span>
+                  ) : null}
+                </div>
+              </div>
             </div>
+            {caseConfig.clinicalEvents?.length ? (
+              <div className="rounded-xl border border-[var(--amber)]/40 bg-[var(--amber-soft)] px-3 py-2.5 text-[11px] leading-relaxed text-[var(--ink)]">
+                <div className="mb-1 font-medium text-[var(--warn)]">
+                  病情会反复波动（{caseConfig.clinicalEvents.length} 波）
+                </div>
+                <p className="text-[var(--muted)]">
+                  已处理 {state.eventLog.length}/{caseConfig.clinicalEvents.length} 波。
+                  时钟随操作推进；也可点下方「继续观察」。约 T+
+                  {Math.min(
+                    ...caseConfig.clinicalEvents.map((e) => e.afterMinute)
+                  )}{" "}
+                  起出现变化，结束前须走完病程。
+                </p>
+                <ul className="mt-2 space-y-0.5 font-mono text-[10px] text-[var(--muted)]">
+                  {caseConfig.clinicalEvents.map((ev) => {
+                    const done = state.eventLog.some((l) => l.eventId === ev.id);
+                    const active = state.activeEventId === ev.id;
+                    return (
+                      <li key={ev.id}>
+                        {done ? "✓" : active ? "●" : "○"} T+{ev.afterMinute}{" "}
+                        {ev.title.replace(/^病情(波动|恶化)[:：]?/, "")}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
+            {caseConfig.clinicalEvents?.length &&
+            !state.activeEventId &&
+            !state.finished ? (
+              <Button
+                type="button"
+                className="w-full text-xs"
+                disabled={busy}
+                onClick={() => void advanceObserve()}
+              >
+                继续观察（推进 8 分钟）→ 触发病情变化
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="ghost"
@@ -401,6 +699,7 @@ export function TrainWorkbench() {
                 setState(createInitialSessionState());
                 setReport(null);
                 setScoreNotice("");
+                setTimeoutNotice("");
               }}
             >
               返回选病例
@@ -445,6 +744,23 @@ export function TrainWorkbench() {
           ) : null}
         </Card>
 
+        {caseConfig.knowledgeCards?.length ? (
+          <Card title="知识点" eyebrow="Cards">
+            <div className="max-h-64 space-y-3 overflow-auto text-xs leading-relaxed">
+              {caseConfig.knowledgeCards.map((card) => (
+                <div key={card.title}>
+                  <div className="mb-1 font-medium text-[var(--brand)]">{card.title}</div>
+                  <ul className="list-disc space-y-1 pl-4 text-[var(--muted)]">
+                    {card.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : null}
+
         <Button
           type="button"
           variant="danger"
@@ -459,7 +775,70 @@ export function TrainWorkbench() {
             {error}
           </p>
         ) : null}
+        {shownTimeout ? (
+          <p className="rounded-lg border border-[var(--warn)] bg-[var(--amber-soft)] px-3 py-2 text-sm text-[var(--warn)]">
+            {shownTimeout}
+          </p>
+        ) : null}
       </aside>
+
+      <div className="space-y-4">
+      {currentVitals ? <VitalsPanel resolved={currentVitals} /> : null}
+
+      {activeEvent ? (
+        <Card
+          title={activeEvent.title}
+          eyebrow={activeEvent.severity === "critical" ? "危急变化" : "病情波动"}
+          className="border-[var(--crit)] bg-[var(--crit-soft)]/40"
+        >
+          <p className="mb-2 text-sm leading-relaxed">{activeEvent.description}</p>
+          {activeEvent.vitals ? (
+            <p className="mb-3 font-mono text-xs text-[var(--crit)]">
+              生命体征：{activeEvent.vitals}
+            </p>
+          ) : null}
+          <p className="mb-2 text-xs text-[var(--muted)]">
+            请勾选你认为正确的处置（可多选），确认后时钟继续推进。急诊病程常反复波动，需动态评估。
+          </p>
+          <div className="mb-3 space-y-2">
+            {activeEvent.options.map((opt) => {
+              const checked = eventPicks.includes(opt.id);
+              return (
+                <label
+                  key={opt.id}
+                  className={`flex cursor-pointer items-start gap-2 rounded-xl border px-3 py-2.5 text-sm ${
+                    checked
+                      ? "border-[var(--brand)] bg-white"
+                      : "border-[var(--line)] bg-white/70"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={checked}
+                    disabled={busy || state.finished}
+                    onChange={() => {
+                      setEventPicks((prev) =>
+                        prev.includes(opt.id)
+                          ? prev.filter((x) => x !== opt.id)
+                          : [...prev, opt.id]
+                      );
+                    }}
+                  />
+                  <span>{opt.text}</span>
+                </label>
+              );
+            })}
+          </div>
+          <Button
+            type="button"
+            disabled={busy || state.finished || eventPicks.length === 0}
+            onClick={() => void resolveEvent()}
+          >
+            提交病情处置
+          </Button>
+        </Card>
+      ) : null}
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card title="问诊对话" eyebrow="Interview" className="flex flex-col">
@@ -475,32 +854,68 @@ export function TrainWorkbench() {
                   className={`rounded-xl px-3 py-2.5 ${
                     m.role === "student"
                       ? "chat-bubble-student ml-6"
-                      : "chat-bubble-patient mr-6"
+                      : m.role === "system"
+                        ? "border border-[var(--amber)] bg-[var(--amber-soft)] text-[var(--ink)]"
+                        : "chat-bubble-patient mr-6"
                   }`}
                 >
-                  <div className="mb-0.5 font-mono text-[10px] tracking-wider text-[var(--muted)]">
-                    {m.role === "student" ? "YOU" : "PATIENT"}
+                  <div className="mb-0.5 flex flex-wrap items-center gap-2 font-mono text-[10px] tracking-wider text-[var(--muted)]">
+                    <span>
+                      {m.role === "student"
+                        ? "YOU"
+                        : m.role === "system"
+                          ? "SYSTEM"
+                          : "PATIENT"}
+                    </span>
+                    {m.tags?.includes("critical") ? (
+                      <span className="rounded bg-[var(--crit-soft)] px-1.5 py-0.5 text-[var(--crit)]">
+                        关键
+                      </span>
+                    ) : null}
+                    {m.tags?.includes("safety") ? (
+                      <span className="rounded bg-[var(--ok-soft)] px-1.5 py-0.5 text-[var(--ok)]">
+                        SAFETY
+                      </span>
+                    ) : null}
                   </div>
                   {m.text}
                 </div>
               ))
             )}
           </div>
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {interviewPresets.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="preset-chip"
+                disabled={busy || state.finished || Boolean(activeEvent)}
+                title={p.text}
+                onClick={() => void sendChat(p.text)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
           <div className="flex gap-2">
             <Input
               className="min-w-0 flex-1"
               value={input}
-              placeholder="输入问诊内容…"
+              placeholder={
+                activeEvent
+                  ? "请先处置上方病情变化…"
+                  : "输入问诊内容，或点上方快捷问句…"
+              }
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") void sendChat();
               }}
-              disabled={busy || state.finished}
+              disabled={busy || state.finished || Boolean(activeEvent)}
             />
             <Button
               type="button"
               className="shrink-0 whitespace-nowrap px-4"
-              disabled={busy || state.finished}
+              disabled={busy || state.finished || Boolean(activeEvent)}
               onClick={() => void sendChat()}
             >
               发送
@@ -509,25 +924,42 @@ export function TrainWorkbench() {
         </Card>
 
         <Card title="检查区" eyebrow="Workup">
-          <Button
-            type="button"
-            variant="ghost"
-            className="mb-3"
-            disabled={busy || state.finished}
-            onClick={() => void doPhysical()}
-          >
-            申请查体
-          </Button>
-          {physical ? (
+          <div className="mb-2 font-mono text-[10px] tracking-[0.14em] text-[var(--muted)]">
+            查体点选
+          </div>
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {physItems.map((item) => {
+              const done = (state.physicalKeys || []).includes(item.key);
+              return (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`preset-chip${done ? " is-done-phys" : ""}`}
+                  disabled={busy || state.finished || done || Boolean(activeEvent)}
+                  onClick={() => void doPhysical(item.key)}
+                >
+                  {done ? "✓ " : ""}
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+          {physical && Object.keys(physical).length > 0 ? (
             <div className="mb-3 space-y-1 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-3 text-xs">
               {Object.entries(physical).map(([k, v]) => (
                 <div key={k}>
-                  <span className="font-medium text-[var(--brand)]">{k}：</span>
+                  <span className="font-medium text-[var(--brand)]">
+                    {physicalExamLabel(k)}：
+                  </span>
                   {v}
                 </div>
               ))}
             </div>
-          ) : null}
+          ) : (
+            <p className="mb-3 text-xs text-[var(--muted)]">
+              点选上方项目逐项查体；每项推进模拟时钟约 1 分钟。
+            </p>
+          )}
           <div className="mb-3 flex flex-wrap gap-2">
             {caseConfig.exams.map((exam) => (
               <Button
@@ -541,6 +973,7 @@ export function TrainWorkbench() {
                 {exam.label}
                 <span className="ml-1 font-mono text-[var(--muted)]">
                   {exam.costMinutes}′
+                  {exam.costFee != null ? ` · ¥${exam.costFee}` : ""}
                 </span>
               </Button>
             ))}
@@ -611,9 +1044,109 @@ export function TrainWorkbench() {
             ：
             {caseConfig.decisionNodes.find((n) => n.id === activeNode)?.hint}
           </p>
+          {activeNode === "P5" && medOptions.length > 0 ? (
+            <div className="mb-3 space-y-2">
+              <div className="font-mono text-[10px] tracking-[0.14em] text-[var(--muted)]">
+                用药勾选
+              </div>
+              <div className="grid gap-1.5">
+                {medOptions.map((m) => {
+                  const on = selectedMeds.includes(m.id);
+                  return (
+                    <label
+                      key={m.id}
+                      className={`med-option${on ? " is-on" : ""}${
+                        m.trap ? " is-trap" : ""
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="mt-0.5"
+                        checked={on}
+                        disabled={busy || state.finished}
+                        onChange={() => {
+                          setSelectedMeds((prev) =>
+                            prev.includes(m.id)
+                              ? prev.filter((x) => x !== m.id)
+                              : [...prev, m.id]
+                          );
+                        }}
+                      />
+                      <span>
+                        {m.label}
+                        {m.essential ? (
+                          <span className="ml-1 font-mono text-[10px] text-[var(--brand)]">
+                            核心
+                          </span>
+                        ) : null}
+                        {m.trap ? (
+                          <span className="ml-1 font-mono text-[10px] text-[var(--amber)]">
+                            慎选
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+          {activeNode === "P6" && strategyOptions.length > 0 ? (
+            <div className="mb-3 space-y-2">
+              <div className="font-mono text-[10px] tracking-[0.14em] text-[var(--muted)]">
+                策略点选
+              </div>
+              <div className="grid gap-1.5">
+                {strategyOptions.map((s) => {
+                  const on = selectedStrategy === s.id;
+                  return (
+                    <label
+                      key={s.id}
+                      className={`med-option${on ? " is-on" : ""}${
+                        s.trap ? " is-trap" : ""
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="strategy"
+                        className="mt-0.5"
+                        checked={on}
+                        disabled={busy || state.finished}
+                        onChange={() => setSelectedStrategy(s.id)}
+                      />
+                      <span>
+                        <span className="font-medium">{s.label}</span>
+                        {s.recommended ? (
+                          <span className="ml-1 font-mono text-[10px] text-[var(--brand)]">
+                            推荐
+                          </span>
+                        ) : null}
+                        {s.trap ? (
+                          <span className="ml-1 font-mono text-[10px] text-[var(--amber)]">
+                            慎选
+                          </span>
+                        ) : null}
+                        {s.desc ? (
+                          <span className="mt-0.5 block text-[11px] text-[var(--muted)]">
+                            {s.desc}
+                          </span>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
           <textarea
             className="mb-2 min-h-28 w-full rounded-lg border border-[var(--line)] bg-white p-3 text-sm outline-none transition focus:border-[var(--brand-strong)] focus:ring-2 focus:ring-[var(--brand-soft)]"
-            placeholder="填写决策理由与依据…"
+            placeholder={
+              activeNode === "P5" && medOptions.length > 0
+                ? "可选：补充剂量调整、禁忌说明等…"
+                : activeNode === "P6" && strategyOptions.length > 0
+                  ? "可选：补充时间窗依据、溶栓禁忌等…"
+                  : "填写决策理由与依据…"
+            }
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             disabled={busy || state.finished}
@@ -677,11 +1210,63 @@ export function TrainWorkbench() {
               <p className="mb-4 text-sm leading-relaxed">{report.outcome.text}</p>
             ) : null}
 
+            {caseConfig.complicationTeaching ? (
+              <div
+                className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
+                  report.branchPath === "B"
+                    ? "border-[var(--crit)] bg-[var(--crit-soft)]"
+                    : "border-[var(--line)] bg-[var(--panel)]"
+                }`}
+              >
+                <div className="mb-1 font-medium">
+                  {caseConfig.complicationTeaching.title}
+                  {report.branchPath === "B" ? (
+                    <span className="ml-2 font-mono text-[10px] text-[var(--crit)]">
+                      与本次延误结局相关
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-[var(--muted)]">
+                  <span className="text-[var(--ink)]">识别：</span>
+                  {caseConfig.complicationTeaching.signs}
+                </p>
+                <p className="mt-1 text-[var(--muted)]">
+                  <span className="text-[var(--ink)]">处置：</span>
+                  {caseConfig.complicationTeaching.actions}
+                </p>
+                {caseConfig.complicationTeaching.wrongMoves ? (
+                  <p className="mt-1 text-[var(--warn)]">
+                    避免：{caseConfig.complicationTeaching.wrongMoves}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="mb-4 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 py-4">
+                <div className="mb-2 text-center text-sm font-medium">六维能力雷达图</div>
+                <div className="flex justify-center">
+                  <ScoreRadar scores={report.scores} max={report.max} />
+                </div>
+              </div>
+              <div className="rounded-xl border border-[var(--line)] bg-white px-3 py-4">
+                <PathComparison rows={report.pathComparison || []} />
+              </div>
+            </div>
+
+            {report.nodeReviews?.length ? (
+              <div className="mb-4 rounded-xl border border-[var(--line)] bg-white px-3 py-4">
+                <div className="mb-3 text-sm font-medium">逐节点复盘评语</div>
+                <NodeReviews rows={report.nodeReviews} />
+              </div>
+            ) : null}
+
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {(Object.keys(SCORE_MAX) as Array<keyof ScoreDimensions>).map((k) => {
                 const max = report.max?.[k] ?? SCORE_MAX[k];
                 const val = report.scores?.[k] ?? 0;
                 const pct = Math.min(100, (val / max) * 100);
+                const comment = report.comments?.[k];
                 return (
                   <div
                     key={k}
@@ -700,10 +1285,40 @@ export function TrainWorkbench() {
                     <div className="score-bar mt-2">
                       <span style={{ width: `${pct}%` }} />
                     </div>
+                    {comment ? (
+                      <p className="mt-2 text-xs leading-relaxed text-[var(--muted)]">
+                        {comment}
+                      </p>
+                    ) : null}
                   </div>
                 );
               })}
             </div>
+
+            {report.timeline?.length ? (
+              <div className="mt-4">
+                <div className="mb-2 text-sm font-medium">决策时间轴</div>
+                <ul className="space-y-1.5 text-sm">
+                  {report.timeline.map((t) => (
+                    <li
+                      key={`${t.nodeId}-${t.atMinute}`}
+                      className="flex flex-wrap items-baseline gap-2 font-mono text-xs"
+                    >
+                      <span className="text-[var(--brand)]">T+{t.atMinute}</span>
+                      <span>{t.nodeId}</span>
+                      <span className="font-sans text-[var(--ink)]">{t.label}</span>
+                      <span
+                        className={
+                          t.ok ? "text-[var(--ok)]" : "text-[var(--warn)]"
+                        }
+                      >
+                        {t.ok ? "✓" : "⚠"} {t.note}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
 
             <div className="mt-4 grid gap-4 lg:grid-cols-2">
               <div>
@@ -726,17 +1341,35 @@ export function TrainWorkbench() {
                   <p className="text-sm text-[var(--muted)]">本次没有可追溯的加分记录。</p>
                 )}
               </div>
-              <div>
-                <div className="mb-2 text-sm font-medium">改进建议</div>
-                <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed">
-                  {(report.suggestions || []).map((s) => (
-                    <li key={s}>{s}</li>
-                  ))}
-                </ol>
+              <div className="space-y-4">
+                <div>
+                  <div className="mb-2 text-sm font-medium">改进建议</div>
+                  <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed">
+                    {(report.suggestions || []).map((s) => (
+                      <li key={s}>{s}</li>
+                    ))}
+                  </ol>
+                </div>
+                {report.recommendedModules?.length ? (
+                  <div>
+                    <div className="mb-2 text-sm font-medium">推荐强化训练模块</div>
+                    <ul className="flex flex-wrap gap-2">
+                      {report.recommendedModules.map((m) => (
+                        <li
+                          key={m}
+                          className="rounded-lg bg-[var(--brand-soft)] px-2.5 py-1 text-xs text-[var(--brand)]"
+                        >
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             </div>
           </Card>
         ) : null}
+      </div>
       </div>
     </div>
   );

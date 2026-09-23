@@ -1,7 +1,8 @@
 import { fail, ok } from "@/lib/api";
 import { AuthError, requireSession } from "@/lib/auth";
 import { getCaseConfig } from "@/lib/er-think/cases";
-import { buildDebrief, recomputeScores } from "@/lib/er-think/scoring";
+import { buildDebrief } from "@/lib/er-think/scoring";
+import { commitSessionState, normalizeSessionState } from "@/lib/er-think/session-flow";
 import { query } from "@/lib/db";
 import { safeJsonParse } from "@/lib/utils";
 import type { CaseConfig, SessionState } from "@/types";
@@ -39,9 +40,48 @@ export async function POST(
       caseConfig = getCaseConfig(row.case_code) || caseConfig;
     }
 
-    let state = safeJsonParse<SessionState>(row.state, row.state as SessionState);
-    state = recomputeScores(state, caseConfig?.qaNodes || []);
-    const report = buildDebrief(state);
+    let state = normalizeSessionState(
+      safeJsonParse<SessionState>(row.state, row.state as SessionState)
+    );
+    if (state.activeEventId) {
+      return fail("还有未处理的病情变化，请先完成处置再结束演练", 409);
+    }
+
+    // 结束前若还有未经历的病情波，把时钟推到下一波并强制处置（贴合「疾病不会一帆风顺」）
+    const events = caseConfig?.clinicalEvents || [];
+    const handled = new Set(state.eventLog.map((e) => e.eventId));
+    const remaining = events
+      .filter((e) => !handled.has(e.id))
+      .sort((a, b) => a.afterMinute - b.afterMinute);
+    if (remaining.length > 0) {
+      const nextEv = remaining[0];
+      state = {
+        ...state,
+        simMinutes: Math.max(state.simMinutes, nextEv.afterMinute),
+      };
+      state = commitSessionState(state, caseConfig);
+      await query(
+        `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(state), id]
+      );
+      if (state.activeEventId) {
+        return fail(
+          `病程尚未走完：仍有「${nextEv.title}」等病情变化未处理。请处置后再结束（急诊很少一帆风顺）。`,
+          409
+        );
+      }
+    }
+
+    state = commitSessionState(state, caseConfig);
+    if (state.activeEventId) {
+      await query(
+        `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+        [JSON.stringify(state), id]
+      );
+      return fail("演练结束前出现新的病情变化，请先处置", 409);
+    }
+
+    const report = buildDebrief(state, caseConfig);
     state.branchPath = report.branchPath;
     state.finished = true;
 

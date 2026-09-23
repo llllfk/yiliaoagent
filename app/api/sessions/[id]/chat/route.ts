@@ -3,7 +3,8 @@ import { fail, ok } from "@/lib/api";
 import { AuthError, requireSession } from "@/lib/auth";
 import { getCaseConfig } from "@/lib/er-think/cases";
 import { matchQaIntent } from "@/lib/er-think/qa-match";
-import { feedbackFromDelta, recomputeScores } from "@/lib/er-think/scoring";
+import { feedbackFromDelta } from "@/lib/er-think/scoring";
+import { commitSessionState, normalizeSessionState } from "@/lib/er-think/session-flow";
 import { query } from "@/lib/db";
 import { safeJsonParse } from "@/lib/utils";
 import type { CaseConfig, SessionState } from "@/types";
@@ -44,8 +45,14 @@ export async function POST(
       caseConfig = getCaseConfig(row.case_code) as CaseConfig;
     }
 
-    let state = safeJsonParse<SessionState>(row.state, row.state as SessionState);
+    let state = normalizeSessionState(
+      safeJsonParse<SessionState>(row.state, row.state as SessionState)
+    );
+    if (state.activeEventId) {
+      return fail("请先处理当前病情变化，再继续问诊", 409);
+    }
 
+    const before = state;
     const allAsked = state.unlockedQaIds.length >= caseConfig.qaNodes.length;
     const match = matchQaIntent(
       message,
@@ -53,6 +60,12 @@ export async function POST(
       state.unlockedQaIds,
       allAsked
     );
+
+    state = {
+      ...state,
+      unlockedQaIds: [...state.unlockedQaIds],
+      chat: [...state.chat],
+    };
 
     state.chat.push({
       role: "student",
@@ -62,15 +75,21 @@ export async function POST(
     state.simMinutes += 1;
 
     let patientText: string;
+    let tags: Array<"critical" | "safety"> | undefined;
+    let qaId: string | undefined;
     if (match.hit) {
       if (!state.unlockedQaIds.includes(match.node.id)) {
         state.unlockedQaIds.push(match.node.id);
       }
       state.fallbackMissCount = 0;
       patientText = match.node.answer;
+      qaId = match.node.id;
+      const nextTags: Array<"critical" | "safety"> = [];
+      if (match.node.critical) nextTags.push("critical");
+      if (match.node.safety) nextTags.push("safety");
+      if (nextTags.length) tags = nextTags;
     } else {
       state.fallbackMissCount += 1;
-      // 前 2 次配合性回答，其后类别引导（附录 A）
       patientText =
         state.fallbackMissCount <= 2
           ? "大夫，我胸口还是疼得厉害……您再问问具体哪儿、怎么个疼法？"
@@ -81,23 +100,25 @@ export async function POST(
       role: "patient",
       text: patientText,
       at: new Date().toISOString(),
+      qaId,
+      tags,
     });
 
-    const scored = recomputeScores(state, caseConfig.qaNodes || []);
-    const feedback = feedbackFromDelta(state, scored);
-    state = scored;
+    const scored = commitSessionState(state, caseConfig);
+    const feedback = feedbackFromDelta(before, scored);
 
     await query(
       `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW()
        WHERE id = $2 AND tenant_id = $3`,
-      [JSON.stringify(state), id, user.tenantId]
+      [JSON.stringify(scored), id, user.tenantId]
     );
 
     return ok({
       patientResponse: patientText,
       matchedQaId: match.hit ? match.node.id : null,
       feedback,
-      state,
+      eventTriggered: Boolean(scored.activeEventId && !before.activeEventId),
+      state: scored,
     });
   } catch (error) {
     if (error instanceof AuthError) {

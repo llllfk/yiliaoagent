@@ -7,15 +7,15 @@ export type MatchResult =
 const EXTRA_INTENTS: Array<{ test: (node: QaNode) => boolean; intents: string[] }> = [
   {
     test: (n) => n.category.includes("主诉") || n.id === "Q1",
-    intents: ["怎么了", "什么情况", "哪儿不舒服", "主诉", "怎么回事"],
+    intents: ["怎么了", "什么情况", "哪儿不舒服", "主诉", "怎么回事", "今天怎么来的"],
   },
   {
     test: (n) => n.category.includes("部位") || n.id === "Q2",
-    intents: ["哪里疼", "痛在哪", "哪个位置", "具体哪儿疼"],
+    intents: ["哪里疼", "痛在哪", "哪个位置", "具体哪儿疼", "胸骨后", "胸口哪里"],
   },
   {
     test: (n) => n.category.includes("性质") || n.id === "Q3",
-    intents: ["怎么疼", "什么感觉", "压榨", "闷痛"],
+    intents: ["怎么疼", "什么感觉", "压榨", "闷痛", "撕裂样吗", "是不是撕裂"],
   },
   {
     test: (n) => n.category.includes("程度") || n.id === "Q4",
@@ -23,7 +23,7 @@ const EXTRA_INTENTS: Array<{ test: (node: QaNode) => boolean; intents: string[] 
   },
   {
     test: (n) => n.category.includes("放射") || n.id === "Q5",
-    intents: ["放射痛", "肩膀疼吗", "左臂", "窜到哪", "别的地方疼"],
+    intents: ["放射痛", "肩膀疼吗", "左臂", "窜到哪", "别的地方疼", "下颌", "后背也疼吗"],
   },
   {
     test: (n) => n.category.includes("时间") || n.id === "Q6",
@@ -31,11 +31,11 @@ const EXTRA_INTENTS: Array<{ test: (node: QaNode) => boolean; intents: string[] 
   },
   {
     test: (n) => n.category.includes("诱因") || n.category.includes("缓解") || n.id === "Q7",
-    intents: ["什么诱因", "硝酸甘油", "休息能好吗", "怎么引起的"],
+    intents: ["什么诱因", "硝酸甘油", "休息能好吗", "怎么引起的", "含服有用吗"],
   },
   {
     test: (n) => n.category.includes("出汗") || n.id === "Q8",
-    intents: ["出汗吗", "冷汗", "盗汗"],
+    intents: ["出汗吗", "冷汗", "盗汗", "湿冷"],
   },
   {
     test: (n) => n.category.includes("消化道") || n.id === "Q9",
@@ -43,11 +43,11 @@ const EXTRA_INTENTS: Array<{ test: (node: QaNode) => boolean; intents: string[] 
   },
   {
     test: (n) => n.category.includes("呼吸") || n.category.includes("循环") || n.id === "Q10",
-    intents: ["气短吗", "呼吸困难", "心慌吗", "咯血吗"],
+    intents: ["气短吗", "呼吸困难", "心慌吗", "咯血吗", "喘不上气"],
   },
   {
     test: (n) => n.category.includes("高血压") || n.id === "Q13",
-    intents: ["高血压吗", "以前有什么病", "既往病史", "慢性病"],
+    intents: ["高血压吗", "以前有什么病", "既往病史", "慢性病", "危险因素"],
   },
   {
     test: (n) => n.category.includes("糖尿病") || n.id === "Q14",
@@ -59,7 +59,7 @@ const EXTRA_INTENTS: Array<{ test: (node: QaNode) => boolean; intents: string[] 
   },
   {
     test: (n) => n.category.includes("家族") || n.id === "Q18",
-    intents: ["家族史", "父母得过吗", "家里有人心梗"],
+    intents: ["家族史", "父母得过吗", "家里有人心梗", "父亲有没有"],
   },
   {
     test: (n) => n.safety || n.category.includes("安全") || n.id === "Q19",

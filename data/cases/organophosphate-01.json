@@ -1,0 +1,613 @@
+{
+  "code": "organophosphate-01",
+  "title": "急性有机磷中毒",
+  "difficulty": "进阶级",
+  "targetMinutes": "20–25",
+  "category": "中毒急症",
+  "source": "demo-html",
+  "patient": {
+    "name": "李阿姨",
+    "age": 56,
+    "gender": "女",
+    "occupation": "务农",
+    "chief": "误服农药后恶心、流涎、大汗 1 小时",
+    "history": "情绪激动后自服敌敌畏约 50ml，被家属发现后急送"
+  },
+  "qaNodes": [
+    {
+      "id": "Q1",
+      "category": "主诉症状",
+      "intents": ["症状", "哪里", "不舒服", "难受", "怎么样", "情况", "你怎么了"],
+      "answer": "浑身没劲、出大汗、流涎、痰多，有点憋气，小便也失禁了。",
+      "critical": true
+    },
+    {
+      "id": "Q2",
+      "category": "毒物与剂量",
+      "intents": ["什么药", "什么农药", "喝的什么", "敌敌畏", "药名", "种类", "名称", "量多少", "多少毫升", "大概多少", "半瓶", "剂量"],
+      "answer": "敌敌畏，大概半瓶，有 50 毫升左右。",
+      "critical": true
+    },
+    {
+      "id": "Q3",
+      "category": "起病时间",
+      "intents": ["什么时候", "多久", "发现", "几点", "时间"],
+      "answer": "一个多小时前。发现时已经躺地上，嘴里有白沫。"
+    },
+    {
+      "id": "Q4",
+      "category": "呼吸与分泌物",
+      "intents": ["呼吸", "憋气", "胸闷", "喘", "气促", "痰", "咳嗽"],
+      "answer": "有点憋气，痰特别多，不停流涎。",
+      "critical": true
+    },
+    {
+      "id": "Q5",
+      "category": "消化道症状",
+      "intents": ["恶心", "呕吐", "吐", "肚子", "腹痛", "腹泻"],
+      "answer": "恶心，吐了好几次，肚子有点不舒服。"
+    },
+    {
+      "id": "Q6",
+      "category": "出汗",
+      "intents": ["出汗", "流汗", "大汗", "汗"],
+      "answer": "出了一身大汗，衣服都湿了。",
+      "critical": true
+    },
+    {
+      "id": "Q7",
+      "category": "瞳孔变化",
+      "intents": ["瞳孔", "眼睛", "眼神", "缩小", "针尖"],
+      "answer": "瞳孔看着特别小，像针尖一样。",
+      "critical": true
+    },
+    {
+      "id": "Q8",
+      "category": "抽搐与肌颤",
+      "intents": ["抽", "抽搐", "抖动", "肌束", "颤动", "肌肉跳"],
+      "answer": "没有明显抽搐，但能看到肌肉颤动。"
+    },
+    {
+      "id": "Q9",
+      "category": "神志",
+      "intents": ["神志", "意识", "清醒", "嗜睡", "昏迷", "头昏"],
+      "answer": "现在嗜睡，叫他能睁眼，但精神萎靡。"
+    },
+    {
+      "id": "Q10",
+      "category": "大小便",
+      "intents": ["小便", "尿", "失禁", "大便"],
+      "answer": "小便尿裤子了。"
+    },
+    {
+      "id": "Q11",
+      "category": "气味",
+      "intents": ["气味", "味道", "大蒜", "臭味"],
+      "answer": "身上和嘴里都有股大蒜臭味。",
+      "critical": true
+    },
+    {
+      "id": "Q12",
+      "category": "诱因与精神",
+      "intents": ["情绪", "吵架", "为什么", "想不开", "自杀", "精神"],
+      "answer": "最近跟儿子吵架，这几天情绪不好。"
+    },
+    {
+      "id": "Q13",
+      "category": "院前处理",
+      "intents": ["洗胃", "催吐", "导泻", "路上", "处理"],
+      "answer": "路上没洗胃也没催吐，送来后才交给你们处理。"
+    },
+    {
+      "id": "Q14",
+      "category": "抽搐失禁确认",
+      "intents": ["有没有抽搐、大小便失禁？", "有没有抽搐", "大小便失禁"],
+      "answer": "没有抽，但小便尿裤子了。"
+    }
+  ],
+  "exams": [
+    {
+      "id": "cholinesterase",
+      "label": "全血胆碱酯酶活性",
+      "costMinutes": 30,
+      "costFee": 100,
+      "critical": true,
+      "result": "胆碱酯酶活性 18%（参考值 80–100%），提示重度有机磷中毒。胆碱酯酶是诊断与分级依据，但抢救不应等待化验回报才开始解毒。"
+    },
+    {
+      "id": "blood_gas",
+      "label": "动脉血气分析",
+      "costMinutes": 15,
+      "costFee": 100,
+      "critical": true,
+      "result": "pH 7.28，PaO₂ 65 mmHg，PaCO₂ 45 mmHg；低氧血症伴呼吸性酸中毒，提示呼吸衰竭风险，需评估气道与通气支持。"
+    },
+    {
+      "id": "electrolyte",
+      "label": "电解质",
+      "costMinutes": 20,
+      "costFee": 60,
+      "result": "K⁺ 3.2 mmol/L（轻度低钾），Na⁺、Cl⁻ 大致正常。注意补钾与心律失常风险。"
+    },
+    {
+      "id": "liver_kidney",
+      "label": "肝肾功能",
+      "costMinutes": 30,
+      "costFee": 60,
+      "result": "ALT 86 U/L，Cr 112 μmol/L，轻度升高。有机磷可致多器官损伤，需动态复查。"
+    },
+    {
+      "id": "ecg",
+      "label": "心电图",
+      "costMinutes": 10,
+      "costFee": 60,
+      "result": "窦性心动过缓，QT 间期延长。警惕缓慢性心律失常与阿托品滴定相关变化。"
+    }
+  ],
+  "physicalExam": {
+    "vitals": "T 36.4℃，P 52 次/分，R 28 次/分，BP 100/62 mmHg，SpO2 91%",
+    "general": "意识嗜睡，呼出气体有明显大蒜臭味，皮肤湿冷、多汗。",
+    "pupils": "双侧瞳孔针尖样缩小，直径约 1.5mm，对光反射迟钝。",
+    "lung": "双肺底弥漫湿啰音，痰鸣音明显。",
+    "heart": "心率 52 次/分，律齐，心音偏低钝。",
+    "abdomen": "腹软，无压痛，肠鸣音活跃。",
+    "neuro": "可见肌束颤动，病理征未引出。"
+  },
+  "baselineVitals": {
+    "temp": 36.4,
+    "hr": 52,
+    "rr": 28,
+    "bp": "100/62 mmHg",
+    "spo2": 91,
+    "pain": 2,
+    "consciousness": "嗜睡",
+    "note": "大蒜臭味，皮肤湿冷多汗，针尖样瞳孔"
+  },
+  "medicationOptions": [
+    {
+      "id": "atropine",
+      "label": "阿托品静脉推注（反复至阿托品化）",
+      "essential": true
+    },
+    {
+      "id": "pralidoxime",
+      "label": "氯解磷定/碘解磷定（复能剂）",
+      "essential": true
+    },
+    {
+      "id": "oxygen",
+      "label": "高流量吸氧 + 备好气道管理",
+      "essential": true
+    },
+    {
+      "id": "gastric_lavage",
+      "label": "洗胃（尽早，气道保护下）",
+      "essential": true
+    },
+    {
+      "id": "activated_carbon",
+      "label": "活性炭吸附"
+    },
+    {
+      "id": "diazepam",
+      "label": "地西泮（控制抽搐/烦躁）"
+    },
+    {
+      "id": "morphine",
+      "label": "吗啡镇静镇痛",
+      "trap": true
+    },
+    {
+      "id": "beta-block",
+      "label": "β受体阻滞剂减慢心率",
+      "trap": true
+    }
+  ],
+  "strategyOptions": [
+    {
+      "id": "full_antidote",
+      "label": "阿托品 + 解磷定联合解毒",
+      "desc": "首选：尽早足量阿托品化 + 复能剂，并行气道保护与洗胃",
+      "recommended": true
+    },
+    {
+      "id": "atropine_only",
+      "label": "单用阿托品（不用复能剂）",
+      "desc": "疗效有限，非首选",
+      "trap": true
+    },
+    {
+      "id": "observe_only",
+      "label": "先观察等胆碱酯酶回报再解毒",
+      "desc": "重度中毒抢救不应等待化验",
+      "trap": true
+    },
+    {
+      "id": "diuretic_first",
+      "label": "大剂量利尿「减轻肺水肿」为主",
+      "desc": "误把分泌物增多当心源性肺水肿处理",
+      "trap": true
+    }
+  ],
+  "scoringHints": {
+    "profile": "generic",
+    "diagnosisKeywords": [
+      "有机磷",
+      "敌敌畏",
+      "农药中毒",
+      "胆碱酯酶",
+      "毒蕈碱"
+    ],
+    "essentialMedNames": [
+      "阿托品",
+      "解磷定",
+      "氯解磷定",
+      "洗胃",
+      "吸氧"
+    ],
+    "recommendedStrategies": [
+      "阿托品 + 解磷定联合解毒",
+      "联合解毒",
+      "阿托品化"
+    ]
+  },
+  "decisionNodes": [
+    {
+      "id": "P1",
+      "name": "分诊分级",
+      "hint": "误服毒物伴意识改变、呼吸增快、低氧 → II 级危重；立即评估气道与呼吸，启动中毒抢救"
+    },
+    {
+      "id": "P2",
+      "name": "关键检查时机",
+      "hint": "优先胆碱酯酶、动脉血气；心电图评估缓慢性心律失常。抢救不等待化验回报"
+    },
+    {
+      "id": "P3",
+      "name": "病史完整性",
+      "hint": "毒物种类/剂量、服毒时间、院前处理、呼吸分泌物、瞳孔、神志、诱因与精神状态"
+    },
+    {
+      "id": "P4",
+      "name": "鉴别诊断",
+      "hint": "首位：急性有机磷中毒（敌敌畏）；鉴别急性肺水肿/呼吸衰竭、其他药物/化学品中毒"
+    },
+    {
+      "id": "P5",
+      "name": "初始药物治疗",
+      "hint": "阿托品至阿托品化 + 复能剂 + 吸氧/气道准备 + 早期洗胃；勿用吗啡或 β 阻滞剂"
+    },
+    {
+      "id": "P6",
+      "name": "关键处置策略",
+      "hint": "首选阿托品 + 解磷定联合解毒；单用阿托品或等待化验再解毒均不推荐"
+    },
+    {
+      "id": "P7",
+      "name": "动态监测",
+      "hint": "监测阿托品化指标、呼吸/血氧、胆碱酯酶；警惕呼吸衰竭、中间综合征与反跳"
+    },
+    {
+      "id": "P8",
+      "name": "循证表达",
+      "hint": "引用《中国急性有机磷中毒诊治专家共识》：清除毒物、足量阿托品化、复能剂、气道保护"
+    }
+  ],
+  "knowledgeCards": [
+    {
+      "title": "有机磷中毒三联征",
+      "items": [
+        "毒蕈碱样：流涎、出汗、瞳孔缩小、肺部啰音",
+        "烟碱样：肌束颤动、肌无力",
+        "中枢：嗜睡、抽搐、昏迷"
+      ]
+    },
+    {
+      "title": "阿托品化要点",
+      "items": [
+        "瞳孔较前扩大、口干、皮肤干燥",
+        "心率升至约 90–100 次/分、肺部湿啰音减少",
+        "避免阿托品过量中毒"
+      ]
+    },
+    {
+      "title": "气道与清除毒物",
+      "items": [
+        "呼吸衰竭时立即气管插管",
+        "气道保护下尽早洗胃",
+        "可考虑活性炭吸附残留毒物"
+      ]
+    },
+    {
+      "title": "学习目标",
+      "items": [
+        "识别毒蕈碱/烟碱/中枢症状",
+        "掌握阿托品化与复能剂原则",
+        "识别呼吸衰竭并及时气道保护"
+      ]
+    }
+  ],
+  "complicationTeaching": {
+    "title": "病情恶化：呼吸衰竭",
+    "signs": "意识加深、呼吸浅慢、血氧持续下降、口唇紫绀；可伴血压下降、心率进一步减慢。",
+    "actions": "立即气管插管机械通气；充分吸痰；加大阿托品拮抗分泌物；维持复能剂与监护。",
+    "wrongMoves": "大剂量利尿「减轻肺水肿」、吗啡镇静、β 阻滞剂减慢心率。"
+  },
+  "clinicalEvents": [
+    {
+      "id": "op-wave-1",
+      "title": "病情波动：毒蕈碱样症状加重",
+      "description": "洗胃/解毒过程中，患者流涎、出汗、肺部啰音增多，呼吸费力——有机磷中毒常在治疗后仍波动。",
+      "severity": "warn",
+      "afterMinute": 5,
+      "skipIfDecisions": ["P5", "P6"],
+      "vitals": "HR 偏慢，分泌物增多，SpO2 下降",
+      "vitalsSnapshot": {
+        "hr": 48,
+        "bp": "96/58 mmHg",
+        "rr": 32,
+        "spo2": 88,
+        "consciousness": "嗜睡加重",
+        "note": "流涎、肺部啰音增多"
+      },
+      "options": [
+        {
+          "id": "op1a",
+          "text": "加大阿托品并评估阿托品化指标，同时加强吸痰/气道管理",
+          "correct": true
+        },
+        {
+          "id": "op1b",
+          "text": "认为已经解毒完成，停止观察",
+          "correct": false
+        },
+        {
+          "id": "op1c",
+          "text": "继续联用复能剂，监测胆碱酯酶与呼吸",
+          "correct": true
+        },
+        {
+          "id": "op1d",
+          "text": "立即大剂量利尿「减轻肺水肿」",
+          "correct": false
+        }
+      ],
+      "resolveOk": "第一波分泌物/呼吸波动得到控制。",
+      "resolveBad": "解毒不足或气道管理不当，可能进展为呼吸衰竭。"
+    },
+    {
+      "id": "op-wave-2",
+      "title": "病情恶化：呼吸衰竭",
+      "description": "一度好转后，患者突发呼吸浅慢、意识变差、血氧继续下降——中毒病程可再次恶化为呼吸衰竭。",
+      "severity": "critical",
+      "afterMinute": 14,
+      "afterEventId": "op-wave-1",
+      "vitals": "SpO2 明显下降，呼吸衰竭征象，意识变差",
+      "vitalsSnapshot": {
+        "hr": 48,
+        "bp": "88/52 mmHg",
+        "rr": 10,
+        "spo2": 82,
+        "consciousness": "昏迷",
+        "note": "口唇紫绀，需紧急气道支持"
+      },
+      "options": [
+        {
+          "id": "op2a",
+          "text": "立即气管插管机械通气，充分吸痰保持气道通畅",
+          "correct": true
+        },
+        {
+          "id": "op2b",
+          "text": "吗啡镇静观察",
+          "correct": false
+        },
+        {
+          "id": "op2c",
+          "text": "加大阿托品拮抗分泌物，同时升级气道支持",
+          "correct": true
+        },
+        {
+          "id": "op2d",
+          "text": "β 阻滞剂减慢心率",
+          "correct": false
+        }
+      ],
+      "resolveOk": "气道与解毒并进，呼吸衰竭暂控。",
+      "resolveBad": "延误插管或错误用药，危及生命。"
+    },
+    {
+      "id": "op-wave-3",
+      "title": "再次波动：中间综合征/肌无力风险",
+      "description": "呼吸支持后病情似乎稳定，随后再次出现肌力下降、呼吸机对抗或脱机困难，提示中间期综合征可能，需要持续评估。",
+      "severity": "critical",
+      "afterMinute": 24,
+      "afterEventId": "op-wave-2",
+      "vitals": "肌力下降，呼吸机参数需求上升",
+      "vitalsSnapshot": {
+        "hr": 88,
+        "bp": "102/64 mmHg",
+        "rr": "机械通气",
+        "spo2": 93,
+        "consciousness": "镇静下",
+        "note": "肌力下降，警惕中间综合征"
+      },
+      "options": [
+        {
+          "id": "op3a",
+          "text": "维持呼吸支持，复查胆碱酯酶，按方案调整解毒与复能剂",
+          "correct": true
+        },
+        {
+          "id": "op3b",
+          "text": "强行脱机转普通病房",
+          "correct": false
+        },
+        {
+          "id": "op3c",
+          "text": "警惕反跳与中间综合征，延长监护与动态评估",
+          "correct": true
+        },
+        {
+          "id": "op3d",
+          "text": "停用所有解毒药观察「自然恢复」",
+          "correct": false
+        }
+      ],
+      "resolveOk": "识别反复病程并维持支持治疗。",
+      "resolveBad": "过早降级监护，可能再次呼吸衰竭。"
+    },
+    {
+      "id": "op-wave-4",
+      "title": "再次好转后反跳：毒蕈碱样症状回潮",
+      "description": "中间综合征风险管控后，患者一度好转、分泌物减少；数十分钟后再次流涎、瞳孔缩小、肺部啰音回潮——有机磷可出现「假好转后反跳」。",
+      "severity": "warn",
+      "afterMinute": 34,
+      "afterEventId": "op-wave-3",
+      "vitals": "分泌物再增多，HR 变慢，SpO2 再次波动",
+      "vitalsSnapshot": {
+        "hr": 56,
+        "bp": "98/60 mmHg",
+        "rr": 26,
+        "spo2": 90,
+        "consciousness": "恍惚",
+        "note": "流涎与啰音回潮，考虑反跳"
+      },
+      "options": [
+        {
+          "id": "op4a",
+          "text": "按反跳处理：重新评估阿托品化，必要时追加阿托品并加强气道吸引",
+          "correct": true
+        },
+        {
+          "id": "op4b",
+          "text": "认为已经痊愈，办理出院",
+          "correct": false
+        },
+        {
+          "id": "op4c",
+          "text": "继续监护胆碱酯酶与呼吸，避免过早降级",
+          "correct": true
+        },
+        {
+          "id": "op4d",
+          "text": "停药观察「自然恢复」",
+          "correct": false
+        }
+      ],
+      "resolveOk": "识别反跳并重新滴定解毒与气道管理。",
+      "resolveBad": "忽视反跳，可能再次呼吸衰竭。"
+    }
+  ],
+  "debriefNodes": [
+    {
+      "id": "dn-triage",
+      "title": "分诊为 II 级危重并评估气道",
+      "type": "decision",
+      "decisionId": "P1",
+      "maxMinute": 5,
+      "evidence": "《中国急诊分诊标准》：误服毒物伴意识改变、呼吸增快、低氧血症为 II 级危重。",
+      "correctComment": "正确识别中毒危重特征，优先气道与呼吸。",
+      "wrongComment": "分诊偏慢或误判，可能延误解毒与气道保护。"
+    },
+    {
+      "id": "dn-phys",
+      "title": "关键查体：瞳孔 + 肺部 + 气味",
+      "type": "physical",
+      "physicalKeys": ["pupils", "lung", "general"],
+      "evidence": "针尖样瞳孔、肺部湿啰音及大蒜臭味是有机磷中毒重要临床线索。",
+      "correctComment": "关键查体完整，抓住典型体征。",
+      "wrongComment": "关键查体有遗漏，可能延误诊断。"
+    },
+    {
+      "id": "dn-lab",
+      "title": "开立胆碱酯酶与血气",
+      "type": "lab",
+      "examIds": ["cholinesterase", "blood_gas"],
+      "evidence": "《中国急性有机磷中毒诊治专家共识》：胆碱酯酶活性是诊断与分级依据；血气评估呼吸功能。",
+      "correctComment": "关键检查完整。",
+      "wrongComment": "关键检查有遗漏；或仅等待化验而延误解毒。"
+    },
+    {
+      "id": "dn-qa",
+      "title": "问清毒物种类、剂量与时间",
+      "type": "qa",
+      "minQa": 6,
+      "evidence": "毒物种类、剂量、服毒时间决定清除与解毒强度。",
+      "correctComment": "核心问诊覆盖达标。",
+      "wrongComment": "问诊不足，毒物信息不清。"
+    },
+    {
+      "id": "dn-meds",
+      "title": "初始解毒与清除毒物",
+      "type": "medication",
+      "medTokens": ["阿托品", "解磷定", "氯解磷定", "洗胃", "吸氧"],
+      "evidence": "专家共识：尽早足量阿托品化、联合复能剂、气道保护及清除毒物是救治核心。",
+      "correctComment": "药物治疗与清除方案规范。",
+      "wrongComment": "遗漏阿托品/复能剂/洗胃等关键措施。"
+    },
+    {
+      "id": "dn-strat",
+      "title": "选择联合解毒策略",
+      "type": "strategy",
+      "strategyId": "full_antidote",
+      "evidence": "阿托品联合复能剂优于单用阿托品，可显著改善预后。",
+      "correctComment": "选择阿托品 + 解磷定联合解毒。",
+      "wrongComment": "策略偏离，如单用阿托品或等待化验。"
+    },
+    {
+      "id": "dn-resp",
+      "title": "呼吸衰竭紧急处置",
+      "type": "event",
+      "eventId": "op-wave-2",
+      "evidence": "呼吸衰竭是有机磷中毒主要死因，应及时气管插管、吸痰及加强阿托品。",
+      "correctComment": "完成紧急气道管理与解毒调整。",
+      "wrongComment": "呼吸衰竭识别与处理是薄弱点。"
+    }
+  ],
+  "standardPath": [
+    {
+      "id": "sp1",
+      "timeLabel": "T+0",
+      "standard": "分诊 II 级危重，评估气道与呼吸",
+      "type": "decision",
+      "decisionId": "P1",
+      "maxMinute": 5
+    },
+    {
+      "id": "sp2",
+      "timeLabel": "查体",
+      "standard": "完成瞳孔、肺部等关键查体",
+      "type": "qa",
+      "minQa": 4
+    },
+    {
+      "id": "sp3",
+      "timeLabel": "检验",
+      "standard": "开立胆碱酯酶与动脉血气",
+      "type": "exam",
+      "examIds": ["cholinesterase", "blood_gas"]
+    },
+    {
+      "id": "sp4",
+      "timeLabel": "处置",
+      "standard": "阿托品+复能剂+洗胃写入 P5",
+      "type": "decision",
+      "decisionId": "P5"
+    },
+    {
+      "id": "sp5",
+      "timeLabel": "处置",
+      "standard": "选择联合解毒策略写入 P6",
+      "type": "decision",
+      "decisionId": "P6"
+    },
+    {
+      "id": "sp6",
+      "timeLabel": "T+14",
+      "standard": "处置呼吸衰竭恶化",
+      "type": "event",
+      "eventId": "op-wave-2"
+    }
+  ]
+}

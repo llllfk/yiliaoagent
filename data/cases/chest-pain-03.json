@@ -1,0 +1,461 @@
+{
+  "code": "chest-pain-03",
+  "title": "急诊胸痛评估",
+  "difficulty": "进阶级",
+  "targetMinutes": "20–25",
+  "patient": {
+    "name": "张先生",
+    "age": 58,
+    "gender": "男",
+    "occupation": "",
+    "chief": "突发胸痛 2 小时",
+    "history": "高血压 10 年，吸烟 30 年，糖尿病否认"
+  },
+  "qaNodes": [
+    {
+      "id": "Q1",
+      "category": "问诊",
+      "intents": [
+        "症状",
+        "哪里",
+        "不舒服",
+        "难受",
+        "怎么样",
+        "情况"
+      ],
+      "answer": "胸口正中间闷痛，像有块大石头压着，向左肩和后背放射，还出冷汗。",
+      "critical": true
+    },
+    {
+      "id": "Q2",
+      "category": "疼痛相关",
+      "intents": [
+        "疼",
+        "痛",
+        "部位",
+        "性质",
+        "压榨",
+        "撕裂",
+        "放射",
+        "后背",
+        "左肩",
+        "左臂",
+        "下颌",
+        "胸口"
+      ],
+      "answer": "胸口正中间闷痛，像有块大石头压着，向左肩和后背放射，不是撕裂样。",
+      "critical": true
+    },
+    {
+      "id": "Q3",
+      "category": "时间病程",
+      "intents": [
+        "多久",
+        "持续",
+        "时间",
+        "以前",
+        "类似",
+        "发作"
+      ],
+      "answer": "疼了快两个小时了，一直不缓解，以前没这么严重过。"
+    },
+    {
+      "id": "Q4",
+      "category": "问诊",
+      "intents": [
+        "加班",
+        "干活",
+        "活动",
+        "运动",
+        "诱因",
+        "怎么开始",
+        "开始"
+      ],
+      "answer": "加班时突然疼的，没干什么重活。"
+    },
+    {
+      "id": "Q5",
+      "category": "问诊",
+      "intents": [
+        "出汗",
+        "冷汗",
+        "大汗"
+      ],
+      "answer": "出了不少冷汗，衣服都湿透了。",
+      "critical": true
+    },
+    {
+      "id": "Q6",
+      "category": "问诊",
+      "intents": [
+        "呼吸",
+        "喘气",
+        "气促",
+        "憋气",
+        "胸闷"
+      ],
+      "answer": "是有点喘不上气，但不严重。"
+    },
+    {
+      "id": "Q7",
+      "category": "问诊",
+      "intents": [
+        "恶心",
+        "呕吐",
+        "吐"
+      ],
+      "answer": "不恶心，也没吐。"
+    },
+    {
+      "id": "Q8",
+      "category": "既往与危险因素",
+      "intents": [
+        "高血压",
+        "血压",
+        "吸烟",
+        "烟",
+        "糖尿病",
+        "血脂",
+        "家族史",
+        "冠心病",
+        "遗传",
+        "既往"
+      ],
+      "answer": "有高血压十多年了，吃药不规律；抽烟快30年，一天一包多；父亲有冠心病。"
+    },
+    {
+      "id": "Q9",
+      "category": "安全史",
+      "intents": [
+        "硝酸甘油",
+        "吃药",
+        "服药",
+        "含服",
+        "阿司匹林"
+      ],
+      "answer": "没吃过硝酸甘油，也没吃别的药，刚才疼得厉害，自己忍着呢。",
+      "critical": true
+    },
+    {
+      "id": "Q10",
+      "category": "安全史",
+      "intents": [
+        "过敏"
+      ],
+      "answer": "我对青霉素过敏，别的没有。",
+      "safety": true
+    },
+    {
+      "id": "Q11",
+      "category": "预设·q1",
+      "intents": [
+        "疼痛是什么性质？压榨样还是撕裂样？",
+        "疼痛是什么性质",
+        "压榨样还是撕裂样"
+      ],
+      "answer": "闷痛，像石头压着一样，不是撕裂感。"
+    },
+    {
+      "id": "Q12",
+      "category": "预设·q2",
+      "intents": [
+        "疼痛有没有向左肩、左臂、下颌或背部放射？",
+        "疼痛有没有向左肩",
+        "左臂",
+        "下颌或背部放射"
+      ],
+      "answer": "左边胳膊有点麻，后背也酸疼。"
+    },
+    {
+      "id": "Q13",
+      "category": "预设·q3",
+      "intents": [
+        "有没有出汗、恶心、呼吸困难？",
+        "有没有出汗",
+        "恶心",
+        "呼吸困难"
+      ],
+      "answer": "出了很多冷汗，有点喘不上气，没恶心。"
+    },
+    {
+      "id": "Q14",
+      "category": "预设·q4",
+      "intents": [
+        "平时血压控制怎么样？有没有高血压？",
+        "平时血压控制怎么",
+        "有没有高血压"
+      ],
+      "answer": "有高血压十多年了，吃药但不规律，最近没量。"
+    },
+    {
+      "id": "Q15",
+      "category": "预设·q5",
+      "intents": [
+        "有没有吸烟史？",
+        "有没有吸烟史"
+      ],
+      "answer": "抽了快30年了，一天一包多。"
+    },
+    {
+      "id": "Q16",
+      "category": "预设·q6",
+      "intents": [
+        "以前有过类似胸痛吗？",
+        "以前有过类似胸痛"
+      ],
+      "answer": "没有过这么厉害的，这次持续不缓解。"
+    }
+  ],
+  "exams": [
+    {
+      "id": "ecg",
+      "label": "心电图 (ECG)",
+      "costMinutes": 10,
+      "costFee": 100,
+      "critical": true,
+      "result": "窦性心律，心率 110 次/分，V1-V4 导联 ST 段弓背向上抬高 0.3-0.5mV，II、III、aVF 导联 ST 段抬高。结论：广泛前壁+下壁 STEMI。"
+    },
+    {
+      "id": "troponin",
+      "label": "高敏肌钙蛋白 T",
+      "costMinutes": 30,
+      "costFee": 100,
+      "critical": true,
+      "result": "2.8 ng/mL（参考值 < 0.014），显著升高。"
+    },
+    {
+      "id": "d_dimer",
+      "label": "D-二聚体",
+      "costMinutes": 20,
+      "costFee": 60,
+      "critical": false,
+      "result": "0.8 mg/L（轻度升高）。"
+    },
+    {
+      "id": "ct_angio",
+      "label": "胸部 CT 增强",
+      "costMinutes": 40,
+      "costFee": 60,
+      "critical": false,
+      "result": "冠状动脉未见夹层征象，肺动脉未见充盈缺损。"
+    }
+  ],
+  "physicalExam": {
+    "vitals": "HR 112 bpm；BP 90/60 mmHg；RR 24 /min；SPO2 96 %；TEMP 36.8 °C；CONSCIOUSNESS 清醒",
+    "general": "全身一般情况观察：面色苍白，口唇无紫绀，皮肤湿冷。",
+    "heart": "心脏听诊：心率 112 次/分，律齐，心音低钝，无杂音。",
+    "lung": "肺部听诊：双肺呼吸音清，未闻及干湿啰音。",
+    "abdomen": "腹部触诊：腹软，无压痛、反跳痛。",
+    "limbs": "四肢水肿检查：双下肢无水肿。"
+  },
+  "decisionNodes": [
+    {
+      "id": "P1",
+      "name": "分诊分级",
+      "hint": "正确！胸痛伴大汗、高危因素，需紧急排除致死性胸痛，属于 II 级（危重）。"
+    },
+    {
+      "id": "P2",
+      "name": "关键检查时机",
+      "hint": "优先完成对本病最关键的床旁/紧急检查（如心电图、血气、床旁超声等）"
+    },
+    {
+      "id": "P3",
+      "name": "病史完整性",
+      "hint": "覆盖主诉、时间、诱因、伴随、既往/用药/过敏等核心问诊类别"
+    },
+    {
+      "id": "P4",
+      "name": "鉴别诊断",
+      "hint": "参考：示例： / 1. 急性冠脉综合征（ACS）— 压榨性胸痛、大汗、高危因素 / 2. 肺栓塞 — 突发胸痛、呼吸困难 / 3. 主动脉夹层 — 撕裂样疼痛需排除"
+    },
+    {
+      "id": "P5",
+      "name": "初始药物治疗",
+      "hint": "阿司匹林 300mg 负荷；替格瑞洛 180mg 负荷；肝素/依诺肝素抗凝；他汀类药物强化降脂"
+    },
+    {
+      "id": "P6",
+      "name": "关键处置策略",
+      "hint": "优先考虑：直接 PCI — 首选方案，D-to-B ≤90 分钟"
+    },
+    {
+      "id": "P7",
+      "name": "动态监测",
+      "hint": "制定监测计划；警惕恶化：病情恶化：心源性休克"
+    },
+    {
+      "id": "P8",
+      "name": "循证表达",
+      "hint": "引用相关指南/共识名称与关键时间或剂量目标"
+    }
+  ],
+  "knowledgeCards": [
+    {
+      "title": "STEMI 诊断三要素",
+      "items": [
+        "症状：持续胸痛 >20 分钟",
+        "ECG：相邻导联 ST 段抬高",
+        "肌钙蛋白阳性升高"
+      ]
+    },
+    {
+      "title": "再灌注时间窗",
+      "items": [
+        "FMC-to-Balloon ≤90 分钟",
+        "FMC-to-Needle ≤30 分钟",
+        "每延迟 1 分钟，心肌损失增加"
+      ]
+    },
+    {
+      "title": "ACS 基石治疗",
+      "items": [
+        "阿司匹林 300mg 负荷",
+        "替格瑞洛 180mg 负荷",
+        "抗凝 + 他汀强化降脂"
+      ]
+    },
+    {
+      "title": "学习目标",
+      "items": [
+        "把握 STEMI 再灌注时间窗",
+        "掌握 ACS 四联药物治疗",
+        "识别并处理急性并发症"
+      ]
+    }
+  ],
+  "complicationTeaching": {
+    "title": "病情恶化：心源性休克",
+    "signs": "患者血压持续下降，意识模糊，尿量减少。需要立即调整方案。 bp 72/48；hr 128；consciousness 淡漠",
+    "actions": "快速补液，纠正低灌注；使用血管活性药物（去甲肾上腺素）；紧急床旁超声评估心功能",
+    "wrongMoves": "考虑 IABP 或 ECMO 支持；大剂量利尿剂减轻负荷"
+  },
+  "scoringHints": {
+    "profile": "stemi",
+    "diagnosisKeywords": [
+      "acs",
+      "冠脉",
+      "心梗",
+      "心肌梗死",
+      "肺栓塞",
+      "栓塞",
+      "夹层",
+      "主动脉"
+    ],
+    "essentialMedNames": [
+      "阿司匹林 300mg 负荷",
+      "替格瑞洛 180mg 负荷",
+      "肝素/依诺肝素抗凝",
+      "他汀类药物强化降脂"
+    ],
+    "recommendedStrategies": [
+      "直接 PCI"
+    ]
+  },
+  "source": "demo-html",
+  "category": "心血管急症",
+  "clinicalEvents": [
+    {
+      "id": "cp-wave-1",
+      "title": "病情波动：胸痛再发加重",
+      "description": "评估中胸痛再次加重、大汗——STEMI 病程很少一帆风顺。",
+      "severity": "warn",
+      "afterMinute": 5,
+      "skipIfDecisions": [
+        "P5",
+        "P6"
+      ],
+      "vitals": "HR 增快，疼痛加重，出汗",
+      "options": [
+        {
+          "id": "cp1a",
+          "text": "复查生命体征与心电图，加快抗栓/再灌注",
+          "correct": true
+        },
+        {
+          "id": "cp1b",
+          "text": "先做完全部非紧急检查再处理",
+          "correct": false
+        },
+        {
+          "id": "cp1c",
+          "text": "启动/加速胸痛绿色通道",
+          "correct": true
+        },
+        {
+          "id": "cp1d",
+          "text": "劝患者再忍忍",
+          "correct": false
+        }
+      ],
+      "resolveOk": "第一波波动得到响应。",
+      "resolveBad": "延误再灌注。"
+    },
+    {
+      "id": "cp-wave-2",
+      "title": "病情恶化：心源性休克",
+      "description": "突发低血压、意识变差、湿冷——即使治疗已开始，仍可能进展为休克。",
+      "severity": "critical",
+      "afterMinute": 14,
+      "afterEventId": "cp-wave-1",
+      "vitals": "BP 明显下降，意识模糊",
+      "options": [
+        {
+          "id": "cp2a",
+          "text": "休克抢救 + 紧急 PCI/血运重建",
+          "correct": true
+        },
+        {
+          "id": "cp2b",
+          "text": "加大硝酸甘油观察",
+          "correct": false
+        },
+        {
+          "id": "cp2c",
+          "text": "升压维持灌注并推进再灌注",
+          "correct": true
+        },
+        {
+          "id": "cp2d",
+          "text": "长时间等待溶栓效果",
+          "correct": false
+        }
+      ],
+      "resolveOk": "休克与再灌注并行。",
+      "resolveBad": "低灌注加重。"
+    },
+    {
+      "id": "cp-wave-3",
+      "title": "再次恶化：合并心衰倾向",
+      "description": "一度好转后又出现呼吸困难、肺淤血——泵功能可反复恶化。",
+      "severity": "critical",
+      "afterMinute": 24,
+      "afterEventId": "cp-wave-2",
+      "vitals": "呼吸困难，湿啰音，氧饱和度下降",
+      "options": [
+        {
+          "id": "cp3a",
+          "text": "半卧位、氧疗/通气支持，继续血运重建",
+          "correct": true
+        },
+        {
+          "id": "cp3b",
+          "text": "认为已愈，转普通病房停监护",
+          "correct": false
+        },
+        {
+          "id": "cp3c",
+          "text": "床旁评估并准备升级循环支持",
+          "correct": true
+        },
+        {
+          "id": "cp3d",
+          "text": "静脉 β 阻滞剂强行降心率",
+          "correct": false
+        }
+      ],
+      "resolveOk": "识别再恶化并支持泵功能。",
+      "resolveBad": "忽视再恶化。"
+    }
+  ]
+}

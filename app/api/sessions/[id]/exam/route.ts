@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { fail, ok } from "@/lib/api";
 import { AuthError, requireSession } from "@/lib/auth";
 import { getCaseConfig } from "@/lib/er-think/cases";
-import { feedbackFromDelta, recomputeScores } from "@/lib/er-think/scoring";
+import { feedbackFromDelta } from "@/lib/er-think/scoring";
+import { commitSessionState, normalizeSessionState } from "@/lib/er-think/session-flow";
 import { query } from "@/lib/db";
 import { safeJsonParse } from "@/lib/utils";
 import type { CaseConfig, SessionState } from "@/types";
@@ -17,6 +18,7 @@ export async function POST(
     const body = (await request.json()) as {
       action?: "physical" | "order";
       examId?: string;
+      key?: string;
     };
 
     const result = await query<{
@@ -35,7 +37,9 @@ export async function POST(
     const row = result.rows[0];
     if (!row || row.status !== "in_progress") return fail("会话不可用", 404);
 
-    let state = safeJsonParse<SessionState>(row.state, row.state as SessionState);
+    let state = normalizeSessionState(
+      safeJsonParse<SessionState>(row.state, row.state as SessionState)
+    );
     let caseConfig = safeJsonParse<CaseConfig>(
       row.case_config,
       row.case_config as CaseConfig
@@ -44,18 +48,74 @@ export async function POST(
       caseConfig = getCaseConfig(row.case_code) as CaseConfig;
     }
 
+    if (state.activeEventId) {
+      return fail("请先处理当前病情变化，再开立检查", 409);
+    }
+
     if (body.action === "physical") {
-      const next = { ...state, examsOrdered: [...state.examsOrdered] };
-      next.simMinutes += 2;
-      const scored = recomputeScores(next, caseConfig.qaNodes || []);
+      const phys = caseConfig.physicalExam || {};
+      const key = body.key?.trim();
+
+      // 无 key：兼容旧客户端，一次揭示全部未揭示项（+2 分钟）
+      if (!key) {
+        const allKeys = Object.keys(phys);
+        const next = {
+          ...state,
+          physicalKeys: [...new Set([...(state.physicalKeys || []), ...allKeys])],
+          examsOrdered: [...state.examsOrdered],
+          chat: [...state.chat],
+          eventLog: [...state.eventLog],
+          simMinutes: state.simMinutes + 2,
+        };
+        const scored = commitSessionState(next, caseConfig);
+        const feedback = feedbackFromDelta(state, scored);
+        await query(
+          `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW() WHERE id = $2`,
+          [JSON.stringify(scored), id]
+        );
+        return ok({
+          physicalExam: phys,
+          feedback,
+          eventTriggered: Boolean(scored.activeEventId),
+          state: scored,
+        });
+      }
+
+      if (!(key in phys)) return fail("查体项目不存在");
+      if ((state.physicalKeys || []).includes(key)) {
+        const revealed = Object.fromEntries(
+          (state.physicalKeys || []).map((k) => [k, phys[k]])
+        );
+        return ok({
+          message: "该查体项已完成",
+          physicalExam: { [key]: phys[key] },
+          revealed,
+          state,
+        });
+      }
+
+      const next = {
+        ...state,
+        physicalKeys: [...(state.physicalKeys || []), key],
+        examsOrdered: [...state.examsOrdered],
+        chat: [...state.chat],
+        eventLog: [...state.eventLog],
+        simMinutes: state.simMinutes + 1,
+      };
+      const scored = commitSessionState(next, caseConfig);
       const feedback = feedbackFromDelta(state, scored);
+      const revealed = Object.fromEntries(
+        scored.physicalKeys.map((k) => [k, phys[k]])
+      );
       await query(
         `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW() WHERE id = $2`,
         [JSON.stringify(scored), id]
       );
       return ok({
-        physicalExam: caseConfig.physicalExam,
+        physicalExam: { [key]: phys[key] },
+        revealed,
         feedback,
+        eventTriggered: Boolean(scored.activeEventId),
         state: scored,
       });
     }
@@ -87,10 +147,16 @@ export async function POST(
           revealed: false,
         },
       ],
+      chat: [...state.chat],
+      eventLog: [...state.eventLog],
       simMinutes: state.simMinutes + 1,
     };
-    const scored = recomputeScores(next, caseConfig.qaNodes || []);
+    const scored = commitSessionState(next, caseConfig);
     const feedback = feedbackFromDelta(state, scored);
+    const timeoutWarning =
+      examId.toLowerCase().includes("ecg") && orderedAt > 10
+        ? `超时警告：首份心电图于 T+${orderedAt} 开立，超过 ≤10 分钟要求，将影响评分并可能进入延误结局。`
+        : null;
 
     await query(
       `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW() WHERE id = $2`,
@@ -104,8 +170,12 @@ export async function POST(
         readyAtMinute: readyAt,
         resultPreview: scored.simMinutes >= readyAt ? exam.result : "未回报",
         critical: exam.critical || false,
+        costFee: exam.costFee ?? null,
+        costMinutes: exam.costMinutes,
       },
       feedback,
+      timeoutWarning,
+      eventTriggered: Boolean(scored.activeEventId),
       state: scored,
     });
   } catch (error) {

@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { fail, ok } from "@/lib/api";
 import { AuthError, requireSession } from "@/lib/auth";
 import { getCaseConfig } from "@/lib/er-think/cases";
-import { feedbackFromDelta, recomputeScores } from "@/lib/er-think/scoring";
+import { feedbackFromDelta } from "@/lib/er-think/scoring";
+import { commitSessionState, normalizeSessionState } from "@/lib/er-think/session-flow";
 import { query } from "@/lib/db";
 import { safeJsonParse } from "@/lib/utils";
 import type { CaseConfig, DecisionNodeId, SessionState } from "@/types";
@@ -28,6 +29,8 @@ export async function POST(
     const body = (await request.json()) as {
       nodeId?: DecisionNodeId;
       reason?: string;
+      medicationIds?: string[];
+      strategyId?: string;
     };
 
     if (!body.nodeId || !NODE_IDS.includes(body.nodeId)) {
@@ -60,28 +63,59 @@ export async function POST(
       caseConfig = getCaseConfig(row.case_code) || caseConfig;
     }
 
-    const before = safeJsonParse<SessionState>(row.state, row.state as SessionState);
+    const before = normalizeSessionState(
+      safeJsonParse<SessionState>(row.state, row.state as SessionState)
+    );
+    if (before.activeEventId) {
+      return fail("请先处理当前病情变化，再提交决策", 409);
+    }
+
+    const medIds = Array.isArray(body.medicationIds)
+      ? body.medicationIds.map(String).filter(Boolean)
+      : [];
+    const strategyId = body.strategyId ? String(body.strategyId) : "";
+
+    const meta: Record<string, unknown> = {};
+    if (body.nodeId === "P5" && medIds.length) {
+      meta.medicationIds = medIds;
+    }
+    if (body.nodeId === "P6" && strategyId) {
+      meta.strategyId = strategyId;
+    }
+
     const state: SessionState = {
       ...before,
       decisions: { ...before.decisions },
       examsOrdered: [...before.examsOrdered],
       scoreEvidence: [...before.scoreEvidence],
+      eventLog: [...before.eventLog],
+      chat: [...before.chat],
     };
     state.decisions[body.nodeId] = {
       reason,
       atMinute: state.simMinutes,
+      meta: Object.keys(meta).length ? meta : undefined,
     };
     state.simMinutes += 1;
 
-    const scored = recomputeScores(state, caseConfig?.qaNodes || []);
+    const scored = commitSessionState(state, caseConfig);
     const feedback = feedbackFromDelta(before, scored);
+    const timeoutWarning =
+      body.nodeId === "P2" && before.simMinutes > 10
+        ? `超时警告：P2 于 T+${before.simMinutes} 记录，超过首份心电图 ≤10 分钟时间窗，将扣分并可能进入延误结局。`
+        : null;
 
     await query(
       `UPDATE training_sessions SET state = $1::jsonb, updated_at = NOW() WHERE id = $2`,
       [JSON.stringify(scored), id]
     );
 
-    return ok({ feedback, state: scored });
+    return ok({
+      feedback,
+      timeoutWarning,
+      eventTriggered: Boolean(scored.activeEventId),
+      state: scored,
+    });
   } catch (error) {
     if (error instanceof AuthError) {
       return fail(error.message, error.status);

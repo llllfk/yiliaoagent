@@ -193,5 +193,239 @@ export function validateCaseConfig(raw: unknown): CaseValidationResult {
     decisionNodes,
   };
 
+  if (Array.isArray(raw.knowledgeCards)) {
+    config.knowledgeCards = raw.knowledgeCards
+      .filter(isRecord)
+      .map((card) => ({
+        title: String(card.title || "").trim(),
+        items: Array.isArray(card.items)
+          ? card.items.map((x) => String(x)).filter(Boolean)
+          : [],
+      }))
+      .filter((c) => c.title && c.items.length > 0);
+  }
+
+  if (isRecord(raw.complicationTeaching)) {
+    const ct = raw.complicationTeaching;
+    const title = String(ct.title || "").trim();
+    const signs = String(ct.signs || "").trim();
+    const actions = String(ct.actions || "").trim();
+    if (title && signs && actions) {
+      config.complicationTeaching = {
+        title,
+        signs,
+        actions,
+        wrongMoves: ct.wrongMoves ? String(ct.wrongMoves) : undefined,
+      };
+    }
+  }
+
+  if (isRecord(raw.scoringHints)) {
+    const sh = raw.scoringHints;
+    config.scoringHints = {
+      profile: sh.profile === "stemi" ? "stemi" : "generic",
+      diagnosisKeywords: Array.isArray(sh.diagnosisKeywords)
+        ? sh.diagnosisKeywords.map(String).filter(Boolean)
+        : [],
+      essentialMedNames: Array.isArray(sh.essentialMedNames)
+        ? sh.essentialMedNames.map(String).filter(Boolean)
+        : [],
+      recommendedStrategies: Array.isArray(sh.recommendedStrategies)
+        ? sh.recommendedStrategies.map(String).filter(Boolean)
+        : [],
+    };
+  }
+
+  if (typeof raw.category === "string") config.category = raw.category;
+  if (typeof raw.source === "string") config.source = raw.source;
+
+  if (Array.isArray(raw.standardPath)) {
+    config.standardPath = raw.standardPath
+      .filter(isRecord)
+      .map((item, idx) => {
+        const type = String(item.type || "decision") as
+          | "decision"
+          | "exam"
+          | "event"
+          | "qa";
+        return {
+          id: String(item.id || `sp-${idx}`),
+          timeLabel: String(item.timeLabel || "").trim() || `步骤${idx + 1}`,
+          standard: String(item.standard || "").trim(),
+          type: ["decision", "exam", "event", "qa"].includes(type)
+            ? type
+            : "decision",
+          decisionId: item.decisionId
+            ? (String(item.decisionId) as DecisionNodeId)
+            : undefined,
+          examId: item.examId ? String(item.examId) : undefined,
+          examIds: Array.isArray(item.examIds)
+            ? item.examIds.map(String)
+            : undefined,
+          eventId: item.eventId ? String(item.eventId) : undefined,
+          minQa:
+            item.minQa === undefined || item.minQa === null
+              ? undefined
+              : Number(item.minQa),
+          maxMinute:
+            item.maxMinute === undefined || item.maxMinute === null
+              ? undefined
+              : Number(item.maxMinute),
+        };
+      })
+      .filter((x) => x.standard);
+  }
+
+  if (Array.isArray(raw.clinicalEvents)) {
+    config.clinicalEvents = raw.clinicalEvents
+      .filter(isRecord)
+      .map((ev, idx) => {
+        const id = String(ev.id || `evt-${idx}`);
+        const options = Array.isArray(ev.options)
+          ? ev.options
+              .filter(isRecord)
+              .map((o, j) => ({
+                id: String(o.id || `opt-${j}`),
+                text: String(o.text || "").trim(),
+                correct: Boolean(o.correct),
+              }))
+              .filter((o) => o.text)
+          : [];
+        return {
+          id,
+          title: String(ev.title || "病情变化").trim(),
+          description: String(ev.description || "").trim(),
+          severity: (ev.severity === "critical" ? "critical" : "warn") as
+            | "warn"
+            | "critical",
+          afterMinute: Number(ev.afterMinute) || 0,
+          afterEventId: ev.afterEventId ? String(ev.afterEventId) : undefined,
+          skipIfDecisions: Array.isArray(ev.skipIfDecisions)
+            ? (ev.skipIfDecisions.filter((x) =>
+                DECISION_IDS.includes(x as DecisionNodeId)
+              ) as DecisionNodeId[])
+            : undefined,
+          vitals: ev.vitals ? String(ev.vitals) : undefined,
+          vitalsSnapshot: isRecord(ev.vitalsSnapshot)
+            ? {
+                hr: ev.vitalsSnapshot.hr as number | string | undefined,
+                bp: ev.vitalsSnapshot.bp
+                  ? String(ev.vitalsSnapshot.bp)
+                  : undefined,
+                rr: ev.vitalsSnapshot.rr as number | string | undefined,
+                spo2: ev.vitalsSnapshot.spo2 as number | string | undefined,
+                temp: ev.vitalsSnapshot.temp as number | string | undefined,
+                pain: ev.vitalsSnapshot.pain as number | string | undefined,
+                consciousness: ev.vitalsSnapshot.consciousness
+                  ? String(ev.vitalsSnapshot.consciousness)
+                  : undefined,
+                note: ev.vitalsSnapshot.note
+                  ? String(ev.vitalsSnapshot.note)
+                  : undefined,
+              }
+            : undefined,
+          options,
+          resolveOk: ev.resolveOk ? String(ev.resolveOk) : undefined,
+          resolveBad: ev.resolveBad ? String(ev.resolveBad) : undefined,
+        };
+      })
+      .filter((e) => e.id && e.description && e.options.length > 0);
+  }
+
+  if (isRecord(raw.baselineVitals)) {
+    const bv = raw.baselineVitals;
+    config.baselineVitals = {
+      hr: bv.hr as number | string | undefined,
+      bp: bv.bp ? String(bv.bp) : undefined,
+      rr: bv.rr as number | string | undefined,
+      spo2: bv.spo2 as number | string | undefined,
+      temp: bv.temp as number | string | undefined,
+      pain: bv.pain as number | string | undefined,
+      consciousness: bv.consciousness ? String(bv.consciousness) : undefined,
+      note: bv.note ? String(bv.note) : undefined,
+    };
+  }
+
+  if (Array.isArray(raw.medicationOptions)) {
+    config.medicationOptions = raw.medicationOptions
+      .filter(isRecord)
+      .map((m, i) => ({
+        id: String(m.id || `med-${i}`),
+        label: String(m.label || "").trim(),
+        essential: Boolean(m.essential),
+        trap: Boolean(m.trap),
+      }))
+      .filter((m) => m.label);
+  }
+
+  if (Array.isArray(raw.strategyOptions)) {
+    config.strategyOptions = raw.strategyOptions
+      .filter(isRecord)
+      .map((s, i) => ({
+        id: String(s.id || `strat-${i}`),
+        label: String(s.label || "").trim(),
+        desc: s.desc ? String(s.desc) : undefined,
+        recommended: Boolean(s.recommended),
+        trap: Boolean(s.trap),
+      }))
+      .filter((s) => s.label);
+  }
+
+  if (Array.isArray(raw.debriefNodes)) {
+    const allowed = new Set([
+      "decision",
+      "exam",
+      "lab",
+      "medication",
+      "strategy",
+      "qa",
+      "event",
+      "physical",
+    ]);
+    config.debriefNodes = raw.debriefNodes
+      .filter(isRecord)
+      .map((n, i) => {
+        const type = String(n.type || "decision");
+        return {
+          id: String(n.id || `dn-${i}`),
+          title: String(n.title || n.node || "").trim(),
+          type: (allowed.has(type) ? type : "decision") as
+            | "decision"
+            | "exam"
+            | "lab"
+            | "medication"
+            | "strategy"
+            | "qa"
+            | "event"
+            | "physical",
+          evidence: String(n.evidence || "").trim(),
+          correctComment: String(n.correctComment || "").trim(),
+          wrongComment: String(n.wrongComment || "").trim(),
+          decisionId: n.decisionId
+            ? (String(n.decisionId) as DecisionNodeId)
+            : undefined,
+          examId: n.examId ? String(n.examId) : undefined,
+          examIds: Array.isArray(n.examIds) ? n.examIds.map(String) : undefined,
+          eventId: n.eventId ? String(n.eventId) : undefined,
+          strategyId: n.strategyId ? String(n.strategyId) : undefined,
+          physicalKeys: Array.isArray(n.physicalKeys)
+            ? n.physicalKeys.map(String)
+            : undefined,
+          medTokens: Array.isArray(n.medTokens)
+            ? n.medTokens.map(String)
+            : undefined,
+          minQa:
+            n.minQa === undefined || n.minQa === null
+              ? undefined
+              : Number(n.minQa),
+          maxMinute:
+            n.maxMinute === undefined || n.maxMinute === null
+              ? undefined
+              : Number(n.maxMinute),
+        };
+      })
+      .filter((n) => n.title && n.evidence && n.correctComment && n.wrongComment);
+  }
+
   return { ok: true, config, warnings };
 }

@@ -1,0 +1,44 @@
+[
+  {
+    "code": "chest-pain-03",
+    "title": "急诊胸痛评估",
+    "qa": 16,
+    "exams": 4
+  },
+  {
+    "code": "organophosphate-01",
+    "title": "急性有机磷中毒",
+    "qa": 14,
+    "exams": 5
+  },
+  {
+    "code": "stemi-typical-01",
+    "title": "典型STEMI",
+    "qa": 12,
+    "exams": 9
+  },
+  {
+    "code": "appendicitis-01",
+    "title": "急性阑尾炎",
+    "qa": 13,
+    "exams": 6
+  },
+  {
+    "code": "abdominal-pain-01",
+    "title": "急性腹痛鉴别",
+    "qa": 13,
+    "exams": 7
+  },
+  {
+    "code": "polytrauma-01",
+    "title": "多发伤救治",
+    "qa": 14,
+    "exams": 10
+  },
+  {
+    "code": "septic-shock-01",
+    "title": "感染性休克",
+    "qa": 13,
+    "exams": 11
+  }
+]

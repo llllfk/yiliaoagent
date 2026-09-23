@@ -23,14 +23,18 @@ export function TeacherDashboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [status, setStatus] = useState("");
   const [branch, setBranch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [error, setError] = useState("");
 
   const query = useMemo(() => {
     const p = new URLSearchParams();
     if (status) p.set("status", status);
     if (branch) p.set("branch", branch);
+    if (dateFrom) p.set("dateFrom", dateFrom);
+    if (dateTo) p.set("dateTo", dateTo);
     return p.toString();
-  }, [status, branch]);
+  }, [status, branch, dateFrom, dateTo]);
 
   async function load() {
     setError("");
@@ -85,6 +89,9 @@ export function TeacherDashboard() {
           </div>
           <div className="mt-1 text-sm text-[var(--ink)]">
             {status || "全部状态"} · {branch ? `Path ${branch}` : "全部结局"}
+            {dateFrom || dateTo
+              ? ` · ${dateFrom || "…"} ~ ${dateTo || "…"}`
+              : ""}
           </div>
         </Card>
       </div>
@@ -116,6 +123,24 @@ export function TeacherDashboard() {
               <option value="C">Path C</option>
               <option value="D">Path D</option>
             </select>
+          </label>
+          <label className="text-sm">
+            开始日期
+            <input
+              type="date"
+              className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </label>
+          <label className="text-sm">
+            结束日期
+            <input
+              type="date"
+              className="mt-1 block rounded-lg border border-[var(--line)] bg-white px-3 py-2"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
           </label>
           <Button type="button" variant="ghost" onClick={() => void load()}>
             刷新

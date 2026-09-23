@@ -6,6 +6,7 @@ import pg from "pg";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
+const casesDir = path.join(root, "data/cases");
 
 async function main() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -25,12 +26,6 @@ async function main() {
   const schema = fs.readFileSync(path.join(root, "sql/schema.sql"), "utf8");
   await pool.query(schema);
   console.log("schema applied");
-
-  const caseJson = fs.readFileSync(
-    path.join(root, "data/cases/stemi-03.json"),
-    "utf8"
-  );
-  const caseObj = JSON.parse(caseJson);
 
   const teacherHash = await bcrypt.hash("Teacher123!", 12);
   const studentHash = await bcrypt.hash("Student123!", 12);
@@ -57,24 +52,40 @@ async function main() {
     [tenantId, teacherHash, studentHash]
   );
 
-  await pool.query(
-    `INSERT INTO cases (tenant_id, code, title, difficulty, target_minutes, config)
-     VALUES ($1, $2, $3, $4, $5, $6::jsonb)
-     ON CONFLICT (tenant_id, code) DO UPDATE
-       SET title = EXCLUDED.title,
-           config = EXCLUDED.config,
-           updated_at = NOW()`,
-    [
-      tenantId,
-      caseObj.code,
-      caseObj.title,
-      caseObj.difficulty,
-      caseObj.targetMinutes,
-      caseJson,
-    ]
-  );
+  const files = fs
+    .readdirSync(casesDir)
+    .filter((f) => f.endsWith(".json") && !f.startsWith("_") && !f.startsWith("test-"));
 
-  console.log("seed ok");
+  for (const file of files) {
+    const caseJson = fs.readFileSync(path.join(casesDir, file), "utf8");
+    const caseObj = JSON.parse(caseJson);
+    if (!caseObj.code || !caseObj.title) {
+      console.warn("skip invalid", file);
+      continue;
+    }
+    await pool.query(
+      `INSERT INTO cases (tenant_id, code, title, difficulty, target_minutes, config, is_published)
+       VALUES ($1, $2, $3, $4, $5, $6::jsonb, TRUE)
+       ON CONFLICT (tenant_id, code) DO UPDATE
+         SET title = EXCLUDED.title,
+             difficulty = EXCLUDED.difficulty,
+             target_minutes = EXCLUDED.target_minutes,
+             config = EXCLUDED.config,
+             is_published = TRUE,
+             updated_at = NOW()`,
+      [
+        tenantId,
+        caseObj.code,
+        caseObj.title,
+        caseObj.difficulty || null,
+        caseObj.targetMinutes || null,
+        caseJson,
+      ]
+    );
+    console.log("seed case", caseObj.code);
+  }
+
+  console.log("seed ok,", files.length, "cases");
   console.log("accounts: teacher / Teacher123! ; student1 / Student123!");
   await pool.end();
 }

@@ -34,6 +34,7 @@ const TEMPLATE_HINT = `{
       "id": "ecg",
       "label": "心电图",
       "costMinutes": 5,
+      "costFee": 80,
       "critical": true,
       "result": "检查结果文本"
     }

@@ -21,9 +21,13 @@
   --ok-soft: #dcfce7;
   --shadow: 0 10px 30px rgba(10, 22, 32, 0.08);
   --radius: 12px;
-  --font-display: var(--font-display), "Noto Serif SC", serif;
-  --font-sans: var(--font-sans), "Noto Sans SC", "PingFang SC", sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
+  /* 不用 next/font/google：Coze 构建沙箱无外网，会在 font loader 报错 */
+  --font-display: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "SimSun",
+    serif;
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", "SF Mono", ui-monospace,
+    Consolas, monospace;
 }
 
 * {

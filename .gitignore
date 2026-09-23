@@ -30,3 +30,9 @@ next-env.d.ts
 # local/temp artifacts
 tmp/
 _db_init_out.txt
+
+# 交付物/手册/PDF 不进代码仓（放仓库外「交付物」目录）
+docs/
+output/
+*.pdf
+scripts/gen-usage-manual-pdf.py

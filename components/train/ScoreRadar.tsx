@@ -22,11 +22,24 @@ const DIM_SHORT: Record<keyof ScoreDimensions, string> = {
 };
 
 type Props = {
-  scores: ScoreDimensions;
-  max?: ScoreDimensions | typeof SCORE_MAX;
+  scores?: ScoreDimensions | null;
+  max?: ScoreDimensions | typeof SCORE_MAX | null;
   size?: number;
   className?: string;
 };
+
+function normalizeScores(
+  scores?: Partial<ScoreDimensions> | null
+): ScoreDimensions {
+  return {
+    TRI: Number(scores?.TRI || 0),
+    INF: Number(scores?.INF || 0),
+    DIA: Number(scores?.DIA || 0),
+    MAN: Number(scores?.MAN || 0),
+    DYN: Number(scores?.DYN || 0),
+    EBM: Number(scores?.EBM || 0),
+  };
+}
 
 /** 六维能力雷达图（复盘用） */
 export function ScoreRadar({
@@ -35,6 +48,8 @@ export function ScoreRadar({
   size = 280,
   className = "",
 }: Props) {
+  const safeScores = normalizeScores(scores);
+  const safeMax = max ?? SCORE_MAX;
   const cx = size / 2;
   const cy = size / 2;
   const radius = size * 0.34;
@@ -55,8 +70,8 @@ export function ScoreRadar({
   }
 
   const valuePoints = DIM_ORDER.map((k, i) => {
-    const m = Number(max[k] || 1);
-    const ratio = Math.max(0, Math.min(1, Number(scores[k] || 0) / m));
+    const m = Number(safeMax[k] || 1);
+    const ratio = Math.max(0, Math.min(1, Number(safeScores[k] || 0) / m));
     return point(i, radius * ratio);
   });
   const valuePath =
@@ -108,8 +123,8 @@ export function ScoreRadar({
       {DIM_ORDER.map((k, i) => {
         const labelR = radius + size * 0.1;
         const p = point(i, labelR);
-        const val = Number(scores[k] || 0);
-        const m = Number(max[k] || 0);
+        const val = Number(safeScores[k] || 0);
+        const m = Number(safeMax[k] || 0);
         return (
           <text
             key={k}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
@@ -17,29 +18,22 @@ import { SCORE_MAX, type ScoreDimensions } from "@/types";
 
 export function TrainDebriefPanel() {
   const router = useRouter();
-  const { sessionId, caseConfig, state, report, busy, finish } =
-    useTrainSession();
+  const { sessionId, caseConfig, state, report } = useTrainSession();
+
+  // 训练未结束时不可查看复盘/知识点（含直接改 URL）
+  useEffect(() => {
+    if (!state.finished && !report) {
+      router.replace(`/train/${sessionId}/overview`);
+    }
+  }, [state.finished, report, router, sessionId]);
 
   if (!state.finished && !report) {
     return (
       <div className="animate-fade-up">
         <Card title="复盘成绩单" eyebrow="Debrief">
-          <p className="mb-4 text-sm leading-relaxed text-[var(--muted)]">
-            训练尚未结束。完成问诊、检查与关键决策后，在左侧点击「结束演练并复盘」，成绩单将显示在本页。
+          <p className="text-sm leading-relaxed text-[var(--muted)]">
+            复盘与知识点仅在结束演练后开放。请先完成训练，再点击左侧「结束演练并复盘」。
           </p>
-          <Button
-            type="button"
-            variant="danger"
-            disabled={busy}
-            onClick={() => {
-              void (async () => {
-                const ok = await finish();
-                if (ok) router.replace(`/train/${sessionId}/debrief`);
-              })();
-            }}
-          >
-            结束演练并生成复盘
-          </Button>
         </Card>
       </div>
     );
@@ -281,6 +275,26 @@ export function TrainDebriefPanel() {
             ) : null}
           </div>
         </div>
+
+        {caseConfig.knowledgeCards?.length ? (
+          <div className="mt-4">
+            <div className="mb-2 text-sm font-medium">知识点回顾</div>
+            <div className="space-y-3 rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 py-3 text-xs leading-relaxed">
+              {caseConfig.knowledgeCards.map((card) => (
+                <div key={card.title}>
+                  <div className="mb-1 font-medium text-[var(--brand)]">
+                    {card.title}
+                  </div>
+                  <ul className="list-disc space-y-1 pl-4 text-[var(--muted)]">
+                    {card.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </Card>
     </div>
   );

@@ -27,7 +27,7 @@ export function TrainInterviewPanel() {
             href={`/train/${sessionId}/overview`}
             className="underline font-medium"
           >
-            概览监护
+            患者基本信息
           </Link>{" "}
           处置当前病情变化，再继续问诊。
         </div>

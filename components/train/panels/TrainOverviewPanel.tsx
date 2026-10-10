@@ -6,6 +6,18 @@ import { VitalsPanel } from "@/components/train/VitalsPanel";
 import { useTrainSession } from "@/components/train/TrainSessionContext";
 import { formatWallClock } from "@/components/train/train-shared";
 
+function patientField(
+  patient: Record<string, unknown> | undefined,
+  ...keys: string[]
+): string {
+  if (!patient) return "";
+  for (const key of keys) {
+    const v = patient[key];
+    if (v != null && String(v).trim()) return String(v).trim();
+  }
+  return "";
+}
+
 export function TrainOverviewPanel() {
   const {
     caseConfig,
@@ -21,14 +33,47 @@ export function TrainOverviewPanel() {
     advanceObserve,
   } = useTrainSession();
 
+  const patient = caseConfig.patient || {};
+  const patientName = patientField(patient, "name", "姓名");
+  const patientAge = patientField(patient, "age", "年龄");
+  const patientGender = patientField(patient, "gender", "sex", "性别");
+  const patientOccupation = patientField(patient, "occupation", "职业");
+  const patientChief = patientField(patient, "chief", "chiefComplaint", "主诉");
+
   return (
     <div className="space-y-4 animate-fade-up">
-      <Card title="病例卡" eyebrow="Case">
+      <Card title="患者基本信息" eyebrow="Patient">
         <div className="space-y-2 text-sm">
           <div className="font-display text-lg leading-snug">
             {caseConfig.title}
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs text-[var(--muted)] sm:grid-cols-4">
+            {patientName ? (
+              <div className="rounded-lg bg-[var(--panel)] px-2 py-2">
+                姓名
+                <div className="text-[var(--ink)]">{patientName}</div>
+              </div>
+            ) : null}
+            {patientAge ? (
+              <div className="rounded-lg bg-[var(--panel)] px-2 py-2">
+                年龄
+                <div className="text-[var(--ink)]">
+                  {/岁$/.test(patientAge) ? patientAge : `${patientAge} 岁`}
+                </div>
+              </div>
+            ) : null}
+            {patientGender ? (
+              <div className="rounded-lg bg-[var(--panel)] px-2 py-2">
+                性别
+                <div className="text-[var(--ink)]">{patientGender}</div>
+              </div>
+            ) : null}
+            {patientOccupation ? (
+              <div className="rounded-lg bg-[var(--panel)] px-2 py-2">
+                职业
+                <div className="text-[var(--ink)]">{patientOccupation}</div>
+              </div>
+            ) : null}
             <div className="rounded-lg bg-[var(--panel)] px-2 py-2">
               编号
               <div className="font-mono text-[var(--ink)]">{caseConfig.code}</div>
@@ -48,6 +93,12 @@ export function TrainOverviewPanel() {
               </div>
             </div>
           </div>
+          {patientChief ? (
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--panel)] px-3 py-2.5 text-sm">
+              <div className="mb-1 text-xs text-[var(--muted)]">主诉</div>
+              <div className="leading-relaxed text-[var(--ink)]">{patientChief}</div>
+            </div>
+          ) : null}
           <div className="rounded-xl border border-teal-200 bg-[var(--night)] px-3 py-3 text-center">
             <div className="font-mono text-[10px] tracking-[0.2em] text-teal-300/80">
               SIM CLOCK
@@ -170,25 +221,6 @@ export function TrainOverviewPanel() {
           >
             提交病情处置
           </Button>
-        </Card>
-      ) : null}
-
-      {caseConfig.knowledgeCards?.length ? (
-        <Card title="知识点" eyebrow="Cards">
-          <div className="max-h-64 space-y-3 overflow-auto text-xs leading-relaxed">
-            {caseConfig.knowledgeCards.map((card) => (
-              <div key={card.title}>
-                <div className="mb-1 font-medium text-[var(--brand)]">
-                  {card.title}
-                </div>
-                <ul className="list-disc space-y-1 pl-4 text-[var(--muted)]">
-                  {card.items.map((item) => (
-                    <li key={item}>{item}</li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
         </Card>
       ) : null}
     </div>

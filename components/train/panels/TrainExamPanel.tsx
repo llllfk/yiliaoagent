@@ -29,7 +29,7 @@ export function TrainExamPanel() {
             href={`/train/${sessionId}/overview`}
             className="underline font-medium"
           >
-            概览监护
+            患者基本信息
           </Link>{" "}
           处理。
         </div>

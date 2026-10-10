@@ -8,7 +8,7 @@ import { formatWallClock } from "@/components/train/train-shared";
 import { SCORE_MAX } from "@/types";
 
 const NAV = [
-  { slug: "overview", label: "概览监护" },
+  { slug: "overview", label: "患者基本信息" },
   { slug: "interview", label: "问诊" },
   { slug: "exam", label: "检查" },
   { slug: "decisions", label: "决策" },
@@ -68,36 +68,51 @@ export function TrainSideNav() {
         {NAV.map((item) => {
           const href = `${base}/${item.slug}`;
           const active = pathname === href || pathname.endsWith(`/${item.slug}`);
+          const locked = item.slug === "debrief" && !state.finished;
           const badge =
             item.slug === "overview" && activeEvent
               ? "!"
               : item.slug === "debrief" && state.finished
                 ? "✓"
                 : null;
-          return (
-            <Link
-              key={item.slug}
-              href={href}
-              className={`relative shrink-0 rounded-lg px-3 py-2 text-sm transition lg:w-full ${
-                active
-                  ? "bg-[var(--brand)] font-medium text-white"
-                  : "bg-[var(--panel)] text-[var(--ink)] hover:bg-[var(--brand-soft)]"
+          const className = `relative shrink-0 rounded-lg px-3 py-2 text-sm transition lg:w-full ${
+            locked
+              ? "cursor-not-allowed bg-[var(--panel)] text-[var(--muted)] opacity-60"
+              : active
+                ? "bg-[var(--brand)] font-medium text-white"
+                : "bg-[var(--panel)] text-[var(--ink)] hover:bg-[var(--brand-soft)]"
+          }`;
+          const badgeEl = badge ? (
+            <span
+              className={`ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${
+                item.slug === "overview" && activeEvent
+                  ? "bg-[var(--crit)] text-white"
+                  : active
+                    ? "bg-white/25 text-white"
+                    : "bg-[var(--brand)] text-white"
               }`}
             >
-              {item.label}
-              {badge ? (
-                <span
-                  className={`ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${
-                    item.slug === "overview" && activeEvent
-                      ? "bg-[var(--crit)] text-white"
-                      : active
-                        ? "bg-white/25 text-white"
-                        : "bg-[var(--brand)] text-white"
-                  }`}
-                >
-                  {badge}
+              {badge}
+            </span>
+          ) : null;
+          if (locked) {
+            return (
+              <span
+                key={item.slug}
+                className={`${className} flex flex-col items-start gap-0.5 lg:flex-row lg:items-center lg:justify-between`}
+                title="结束后可查看复盘与知识点"
+              >
+                <span>{item.label}</span>
+                <span className="text-[10px] font-normal text-[var(--muted)]">
+                  结束后可看
                 </span>
-              ) : null}
+              </span>
+            );
+          }
+          return (
+            <Link key={item.slug} href={href} className={className}>
+              {item.label}
+              {badgeEl}
             </Link>
           );
         })}

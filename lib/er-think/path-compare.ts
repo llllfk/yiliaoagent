@@ -1,9 +1,4 @@
-import type {
-  CaseConfig,
-  DecisionNodeId,
-  SessionState,
-  StandardPathItem,
-} from "@/types";
+import type { CaseConfig, SessionState, StandardPathItem } from "@/types";
 
 export type PathCompareRow = {
   id: string;
@@ -15,29 +10,9 @@ export type PathCompareRow = {
 
 export type { StandardPathItem };
 
-const NODE_LABEL: Record<DecisionNodeId, string> = {
-  P1: "分诊分级",
-  P2: "关键检查时机",
-  P3: "病史完整性",
-  P4: "鉴别诊断",
-  P5: "初始药物治疗",
-  P6: "关键处置策略",
-  P7: "动态监测",
-  P8: "循证表达",
-};
-
-/** 若病例未配置 standardPath，按决策/关键检查/病情波生成默认对照路径 */
+/** 若病例未配置 standardPath，按问诊/关键检查/病情波生成默认对照路径（不含 P1–P8 决策节点） */
 export function defaultStandardPath(caseConfig: CaseConfig): StandardPathItem[] {
-  const items: StandardPathItem[] = [
-    {
-      id: "sp-p1",
-      timeLabel: "T+0",
-      standard: `完成 ${NODE_LABEL.P1}（写出级别与理由）`,
-      type: "decision",
-      decisionId: "P1",
-      maxMinute: 5,
-    },
-  ];
+  const items: StandardPathItem[] = [];
 
   const criticalExam =
     caseConfig.exams.find((e) => e.critical) ||
@@ -60,23 +35,6 @@ export function defaultStandardPath(caseConfig: CaseConfig): StandardPathItem[] 
     type: "qa",
     minQa: Math.min(6, Math.max(3, Math.ceil(caseConfig.qaNodes.length * 0.4))),
   });
-
-  items.push(
-    {
-      id: "sp-p5",
-      timeLabel: "处置阶段",
-      standard: `完成 ${NODE_LABEL.P5}`,
-      type: "decision",
-      decisionId: "P5",
-    },
-    {
-      id: "sp-p6",
-      timeLabel: "处置阶段",
-      standard: `完成 ${NODE_LABEL.P6}`,
-      type: "decision",
-      decisionId: "P6",
-    }
-  );
 
   for (const ev of caseConfig.clinicalEvents || []) {
     items.push({
@@ -164,14 +122,17 @@ export function buildPathComparison(
       ? caseConfig.standardPath
       : defaultStandardPath(caseConfig);
 
-  return path.map((item) => {
-    const { student, correct } = evalItem(item, state);
-    return {
-      id: item.id,
-      timeLabel: item.timeLabel,
-      standard: item.standard,
-      student,
-      correct,
-    };
-  });
+  // 学生端已取消 P1–P8 决策页，路径对照不再展示 decision 类条目
+  return path
+    .filter((item) => item.type !== "decision")
+    .map((item) => {
+      const { student, correct } = evalItem(item, state);
+      return {
+        id: item.id,
+        timeLabel: item.timeLabel,
+        standard: item.standard,
+        student,
+        correct,
+      };
+    });
 }

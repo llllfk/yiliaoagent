@@ -24,12 +24,12 @@ export function TrainInterviewPanel() {
         <div className="mb-3 rounded-xl border border-[var(--warn)] bg-[var(--amber-soft)] px-3 py-2 text-sm text-[var(--warn)]">
           请先在{" "}
           <Link
-            href={`/train/${sessionId}/overview`}
+            href={`/train/${sessionId}/exam`}
             className="underline font-medium"
           >
-            患者基本信息
+            检查
           </Link>{" "}
-          处置当前病情变化，再继续问诊。
+          页底部处置当前病情变化，再继续问诊。
         </div>
       ) : null}
       <Card title="问诊对话" eyebrow="Interview" className="flex flex-col">

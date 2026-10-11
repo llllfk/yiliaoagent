@@ -11,18 +11,12 @@ import {
 } from "react";
 import { ToastStack, useToasts } from "@/components/ui/Toast";
 import { ecgTimeoutWarning } from "@/lib/er-think/scoring";
-import {
-  medicationOptionsFromCase,
-  resolveCurrentVitals,
-  strategyOptionsFromCase,
-} from "@/lib/er-think/vitals";
+import { resolveCurrentVitals } from "@/lib/er-think/vitals";
 import { physicalExamItems } from "@/lib/er-think/node-debrief";
 import type { CaseConfig, ClinicalEvent, SessionState } from "@/types";
 import { SCORE_MAX, createInitialSessionState } from "@/types";
 import {
-  DECISIONS,
   toastToneFromFeedback,
-  type DecisionId,
   type DebriefReport,
 } from "@/components/train/train-shared";
 
@@ -39,16 +33,8 @@ type TrainSessionContextValue = {
   physical: Record<string, string> | null;
   input: string;
   setInput: (v: string) => void;
-  reason: string;
-  setReason: (v: string) => void;
-  activeNode: DecisionId;
-  setActiveNode: (v: DecisionId) => void;
   eventPicks: string[];
   setEventPicks: (v: string[] | ((prev: string[]) => string[])) => void;
-  selectedMeds: string[];
-  setSelectedMeds: (v: string[] | ((prev: string[]) => string[])) => void;
-  selectedStrategy: string;
-  setSelectedStrategy: (v: string) => void;
   wallStartedAt: number | null;
   wallNow: number;
   totalScore: number;
@@ -63,8 +49,6 @@ type TrainSessionContextValue = {
   }>;
   activeEvent: ClinicalEvent | null;
   currentVitals: ReturnType<typeof resolveCurrentVitals> | null;
-  medOptions: ReturnType<typeof medicationOptionsFromCase>;
-  strategyOptions: ReturnType<typeof strategyOptionsFromCase>;
   interviewPresets: Array<{ id: string; label: string; text: string }>;
   physItems: ReturnType<typeof physicalExamItems>;
   loading: boolean;
@@ -74,7 +58,6 @@ type TrainSessionContextValue = {
   sendChat: (presetText?: string) => Promise<void>;
   orderExam: (examId: string) => Promise<void>;
   doPhysical: (key?: string) => Promise<void>;
-  submitDecision: () => Promise<void>;
   finish: () => Promise<boolean>;
 };
 
@@ -100,8 +83,6 @@ export function TrainSessionProvider({
   const [caseConfig, setCaseConfig] = useState<CaseConfig | null>(null);
   const [state, setState] = useState<SessionState>(createInitialSessionState());
   const [input, setInput] = useState("");
-  const [reason, setReason] = useState("");
-  const [activeNode, setActiveNode] = useState<DecisionId>("P1");
   const [report, setReport] = useState<DebriefReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -109,8 +90,6 @@ export function TrainSessionProvider({
   const [timeoutNotice, setTimeoutNotice] = useState("");
   const [physical, setPhysical] = useState<Record<string, string> | null>(null);
   const [eventPicks, setEventPicks] = useState<string[]>([]);
-  const [selectedMeds, setSelectedMeds] = useState<string[]>([]);
-  const [selectedStrategy, setSelectedStrategy] = useState("");
   const [wallStartedAt, setWallStartedAt] = useState<number | null>(null);
   const [wallNow, setWallNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(true);
@@ -198,12 +177,8 @@ export function TrainSessionProvider({
         );
         setWallStartedAt(Date.now());
         setWallNow(Date.now());
-        setActiveNode("P1");
         setEventPicks([]);
-        setSelectedMeds([]);
-        setSelectedStrategy("");
         setInput("");
-        setReason("");
         setReport(restoredReport);
         setScoreNotice("");
         setTimeoutNotice("");
@@ -271,16 +246,6 @@ export function TrainSessionProvider({
     if (!caseConfig) return null;
     return resolveCurrentVitals(caseConfig, state);
   }, [caseConfig, state]);
-
-  const medOptions = useMemo(
-    () => (caseConfig ? medicationOptionsFromCase(caseConfig) : []),
-    [caseConfig]
-  );
-
-  const strategyOptions = useMemo(
-    () => (caseConfig ? strategyOptionsFromCase(caseConfig) : []),
-    [caseConfig]
-  );
 
   const interviewPresets = useMemo(() => {
     if (!caseConfig) return [];
@@ -443,75 +408,6 @@ export function TrainSessionProvider({
     [pushToast, sessionId]
   );
 
-  const submitDecision = useCallback(async () => {
-    const labels = medOptions
-      .filter((m) => selectedMeds.includes(m.id))
-      .map((m) => m.label);
-    const strat = strategyOptions.find((s) => s.id === selectedStrategy);
-    let composedReason = reason;
-    if (activeNode === "P5" && labels.length > 0) {
-      composedReason = `已选用：${labels.join("、")}${
-        reason.trim() ? `\n补充：${reason.trim()}` : ""
-      }`;
-    } else if (activeNode === "P6" && strat) {
-      composedReason = `再灌注策略：${strat.label}${
-        strat.desc ? `（${strat.desc}）` : ""
-      }${reason.trim() ? `\n补充：${reason.trim()}` : ""}`;
-    }
-    if (!composedReason.trim()) {
-      setError(
-        activeNode === "P5"
-          ? "请勾选药物或填写决策理由"
-          : activeNode === "P6"
-            ? "请选择策略或填写决策理由"
-            : "请填写决策理由"
-      );
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const res = await fetch(`/api/sessions/${sessionId}/decision`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nodeId: activeNode,
-          reason: composedReason,
-          medicationIds: activeNode === "P5" ? selectedMeds : undefined,
-          strategyId:
-            activeNode === "P6" ? selectedStrategy || undefined : undefined,
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "决策失败");
-      setState(json.data.state);
-      const fb = String(json.data.feedback || "已记录。");
-      setScoreNotice(fb);
-      pushToast(fb, toastToneFromFeedback(fb));
-      if (json.data.timeoutWarning) {
-        const tw = String(json.data.timeoutWarning);
-        setTimeoutNotice(tw);
-        pushToast(tw, "warn", 4500);
-      }
-      setReason("");
-      if (activeNode === "P5") setSelectedMeds([]);
-      if (activeNode === "P6") setSelectedStrategy("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "决策失败");
-    } finally {
-      setBusy(false);
-    }
-  }, [
-    activeNode,
-    medOptions,
-    pushToast,
-    reason,
-    selectedMeds,
-    selectedStrategy,
-    sessionId,
-    strategyOptions,
-  ]);
-
   const finish = useCallback(async () => {
     setBusy(true);
     try {
@@ -566,24 +462,14 @@ export function TrainSessionProvider({
     physical,
     input,
     setInput,
-    reason,
-    setReason,
-    activeNode,
-    setActiveNode,
     eventPicks,
     setEventPicks,
-    selectedMeds,
-    setSelectedMeds,
-    selectedStrategy,
-    setSelectedStrategy,
     wallStartedAt,
     wallNow,
     totalScore,
     examResults,
     activeEvent,
     currentVitals,
-    medOptions,
-    strategyOptions,
     interviewPresets,
     physItems,
     loading,
@@ -593,7 +479,6 @@ export function TrainSessionProvider({
     sendChat,
     orderExam,
     doPhysical,
-    submitDecision,
     finish,
   };
 
@@ -604,5 +489,3 @@ export function TrainSessionProvider({
     </TrainSessionContext.Provider>
   );
 }
-
-export { DECISIONS };

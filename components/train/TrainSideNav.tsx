@@ -11,7 +11,6 @@ const NAV = [
   { slug: "overview", label: "患者基本信息" },
   { slug: "interview", label: "问诊" },
   { slug: "exam", label: "检查" },
-  { slug: "decisions", label: "决策" },
   { slug: "debrief", label: "复盘" },
 ] as const;
 
@@ -70,7 +69,7 @@ export function TrainSideNav() {
           const active = pathname === href || pathname.endsWith(`/${item.slug}`);
           const locked = item.slug === "debrief" && !state.finished;
           const badge =
-            item.slug === "overview" && activeEvent
+            item.slug === "exam" && activeEvent
               ? "!"
               : item.slug === "debrief" && state.finished
                 ? "✓"
@@ -85,7 +84,7 @@ export function TrainSideNav() {
           const badgeEl = badge ? (
             <span
               className={`ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${
-                item.slug === "overview" && activeEvent
+                item.slug === "exam" && activeEvent
                   ? "bg-[var(--crit)] text-white"
                   : active
                     ? "bg-white/25 text-white"

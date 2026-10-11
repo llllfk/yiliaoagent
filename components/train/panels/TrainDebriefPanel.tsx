@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ScoreRadar } from "@/components/train/ScoreRadar";
 import { PathComparison } from "@/components/train/PathComparison";
-import { NodeReviews } from "@/components/train/NodeReviews";
 import { useTrainSession } from "@/components/train/TrainSessionContext";
 import {
   DIM_LABEL,
@@ -158,13 +157,6 @@ export function TrainDebriefPanel() {
           </div>
         </div>
 
-        {report.nodeReviews?.length ? (
-          <div className="mb-4 rounded-xl border border-[var(--line)] bg-white px-3 py-4">
-            <div className="mb-3 text-sm font-medium">逐节点复盘评语</div>
-            <NodeReviews rows={report.nodeReviews} />
-          </div>
-        ) : null}
-
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {(Object.keys(SCORE_MAX) as Array<keyof ScoreDimensions>).map((k) => {
             const max = maxScores[k] ?? SCORE_MAX[k];
@@ -201,11 +193,13 @@ export function TrainDebriefPanel() {
           })}
         </div>
 
-        {report.timeline?.length ? (
+        {report.timeline?.filter((t) => !/^P[1-8]$/.test(t.nodeId)).length ? (
           <div className="mt-4">
-            <div className="mb-2 text-sm font-medium">决策时间轴</div>
+            <div className="mb-2 text-sm font-medium">操作时间轴</div>
             <ul className="space-y-1.5 text-sm">
-              {report.timeline.map((t) => (
+              {report.timeline
+                .filter((t) => !/^P[1-8]$/.test(t.nodeId))
+                .map((t) => (
                 <li
                   key={`${t.nodeId}-${t.atMinute}`}
                   className="flex flex-wrap items-baseline gap-2 font-mono text-xs"

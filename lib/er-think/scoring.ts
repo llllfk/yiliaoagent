@@ -6,7 +6,6 @@ import type {
   SessionState,
 } from "@/types";
 import { SCORE_MAX, emptyScores } from "@/types";
-import { buildNodeReviews } from "@/lib/er-think/node-debrief";
 import { buildPathComparison } from "@/lib/er-think/path-compare";
 
 export type ScoreEvidence = {
@@ -31,35 +30,31 @@ export const BRANCH_OUTCOME: Record<BranchPath, { title: string; text: string }>
   },
   D: {
     title: "混合 / 不完善结局",
-    text: "关键决策不完整或策略不当，需复盘问诊覆盖、用药与处置选择。",
+    text: "问诊、检查或病情处置未形成完整闭环，需复盘覆盖度、时间窗与动态处置。",
   },
 };
 
 const STEMI_BRANCH: Record<BranchPath, { title: string; text: string }> = {
   A: {
     title: "标准结局",
-    text: "首份心电图在时间窗内完成，再灌注策略正确。预计 90 分钟内开通血管，无严重并发症，住院约 3 天后转出。",
+    text: "首份心电图在时间窗内完成，问诊与病情处置基本到位。预计按规范路径救治，无严重并发症。",
   },
   B: {
     title: "延误诊治",
-    text: "首份心电图超出 10 分钟时间窗，或初始用药错误（如华法林替代阿司匹林）。心肌缺血时间延长，患者出现心源性休克，转入 ICU。",
+    text: "首份心电图超出 10 分钟时间窗。心肌缺血时间延长，患者可能出现心源性休克，需转入 ICU。",
   },
   C: {
     title: "过度检查",
-    text: "在 STEMI 已明确时仍加做 CTA 或胸片等非必要检查，耽误再灌注，并增加辐射与费用。",
+    text: "在 STEMI 已较明确时仍加做 CTA 或胸片等非必要检查，耽误关键处理，并增加辐射与费用。",
   },
   D: {
-    title: "用药陷阱 / 混合结局",
-    text: "关键决策不完整（如再灌注策略不清）。需复盘时间窗、抗栓与再灌注选择。",
+    title: "混合 / 不完善结局",
+    text: "问诊、关键检查或病情处置未形成完整闭环。需复盘时间窗、鉴别检查与动态处置。",
   },
 };
 
 function round1(n: number) {
   return Math.round(n * 10) / 10;
-}
-
-function has(text: string, pattern: RegExp) {
-  return pattern.test(text || "");
 }
 
 function add(
@@ -180,129 +175,274 @@ function scoreInfFromQa(
   }
 }
 
-function scoreStemi(
+function findEcgOrder(state: SessionState) {
+  return state.examsOrdered.find(
+    (e) =>
+      e.examId.toLowerCase().includes("ecg") ||
+      e.examId.toLowerCase() === "e1" ||
+      e.examId.toLowerCase().includes("心电图")
+  );
+}
+
+function examBlob(state: SessionState, caseConfig?: CaseConfig | null) {
+  return state.examsOrdered
+    .map((o) => {
+      const meta = caseConfig?.exams?.find((e) => e.id === o.examId);
+      return `${o.examId} ${meta?.label || ""}`;
+    })
+    .join(" ");
+}
+
+function scoreTriFromWorkup(
   scores: ScoreDimensions,
   evidence: ScoreEvidence[],
   state: SessionState,
-  qaNodes: QaNode[]
+  caseConfig?: CaseConfig | null
 ) {
-  const p1 = state.decisions.P1?.reason || "";
-  const p2 = state.decisions.P2;
-  const p4 = state.decisions.P4?.reason || "";
-  const p5 = state.decisions.P5?.reason || "";
-  const p6 = state.decisions.P6?.reason || "";
-  const p7 = state.decisions.P7?.reason || "";
-  const p8 = state.decisions.P8?.reason || "";
-  const ecg = state.examsOrdered.find((e) => e.examId.toLowerCase().includes("ecg") || e.examId === "e1");
-  const delayed =
-    (p2 != null && p2.atMinute > 10) || (ecg != null && ecg.orderedAtMinute > 10);
-  const anyReason = Object.values(state.decisions)
-    .map((d) => d?.reason || "")
-    .join(" ");
-
-  if (p1 && has(p1, /II\s*级|Ⅱ级|二级|2级|I\s*级|Ⅰ级/i)) {
-    add(scores, evidence, "TRI", 5, "P1 分级正确", p1.slice(0, 80));
-  }
-  if (p1.length >= 8 && has(p1, /胸痛|大汗|立即|危急|处理|STEMI|心梗/i)) {
-    add(scores, evidence, "TRI", 5, "P1 理由充分", p1.slice(0, 80));
-  }
-  if (p2 && has(p2.reason, /10\s*分钟|十分钟|时间窗|指南|D2B|D1B/i)) {
-    add(scores, evidence, "TRI", 5, "P2 时间窗符合指南", p2.reason.slice(0, 80));
-  }
-  if (ecg && ecg.orderedAtMinute <= 10) {
-    add(scores, evidence, "TRI", 5, "首份心电图在 10 分钟内开立", `T+${ecg.orderedAtMinute} 开立心电图`);
-  }
-  if (delayed && has(anyReason, /延误|延迟|超时/)) {
-    add(scores, evidence, "TRI", 5, "延误原因已记录", "决策理由中说明了延误");
-  }
-
-  scoreInfFromQa(scores, evidence, state, qaNodes);
-
-  if (has(p4, /STEMI|心梗|心肌梗死|ST\s*抬高|ACS|冠脉/i)) {
-    add(scores, evidence, "DIA", 8, "首位诊断相关", p4.slice(0, 80));
-  }
-  if (has(p4, /夹层|主动脉/)) {
-    add(scores, evidence, "DIA", 4, "排查主动脉夹层", p4.slice(0, 80));
-  }
-  if (has(p4, /肺栓塞|PE|栓塞/i)) {
-    add(scores, evidence, "DIA", 3, "排查肺栓塞", p4.slice(0, 80));
-  }
-  if (has(p4, /胆绞痛|胆囊/)) {
-    add(scores, evidence, "DIA", 2.5, "鉴别胆绞痛", p4.slice(0, 80));
-  }
-  if (has(p4, /反流|胃食管|烧心/)) {
-    add(scores, evidence, "DIA", 2.5, "鉴别胃食管反流", p4.slice(0, 80));
+  const ecg = findEcgOrder(state);
+  if (isStemiCase(caseConfig)) {
+    if (ecg && ecg.orderedAtMinute <= 10) {
+      add(
+        scores,
+        evidence,
+        "TRI",
+        12,
+        "首份心电图在 10 分钟内开立",
+        `T+${ecg.orderedAtMinute} 开立心电图`
+      );
+    } else if (ecg) {
+      add(
+        scores,
+        evidence,
+        "TRI",
+        4,
+        "已开立心电图但超时",
+        `T+${ecg.orderedAtMinute} 开立心电图`
+      );
+    }
+  } else if (ecg && ecg.orderedAtMinute <= 15) {
+    add(
+      scores,
+      evidence,
+      "TRI",
+      8,
+      "关键检查较早开立",
+      `T+${ecg.orderedAtMinute} 开立心电图/关键检查`
+    );
   }
 
-  let drug = 0;
-  if (has(p5, /阿司匹林|aspirin/i)) drug += 4;
-  if (has(p5, /替格瑞洛|氯吡格雷/)) drug += 4;
-  if (has(p5, /肝素/)) drug += 4;
-  if (drug > 0) {
-    add(scores, evidence, "MAN", drug, "抗栓药物", p5.slice(0, 80));
+  if (state.examsOrdered.some((e) => e.orderedAtMinute <= 15)) {
+    add(scores, evidence, "TRI", 6, "早期开立检查", "15 分钟内已有检查申请");
   }
-  if (has(p6, /PCI|介入|导管/i)) {
-    const full = has(p6, /12\s*小时|90|导管室|无禁忌|优先/);
-    add(scores, evidence, "MAN", full ? 8 : 5, "再灌注策略", p6.slice(0, 80));
-  } else if (has(p6, /溶栓/)) {
-    add(scores, evidence, "MAN", 3, "再灌注选择溶栓", p6.slice(0, 80));
+  if ((state.physicalKeys || []).length > 0) {
+    add(
+      scores,
+      evidence,
+      "TRI",
+      5,
+      "已开始系统查体",
+      `已完成 ${state.physicalKeys.length} 项查体`
+    );
   }
-
-  if (has(p7, /15\s*分钟|术前|生命体征|复查心电图|监测/)) {
-    add(scores, evidence, "DYN", 5, "术前监测频率", p7.slice(0, 80));
+  if (!isStemiCase(caseConfig) && state.examsOrdered.length > 0) {
+    add(scores, evidence, "TRI", 4, "已启动辅助检查", `共开立 ${state.examsOrdered.length} 项`);
   }
-  if (has(p7, /肌钙蛋白|2\s*小时|6\s*小时|24\s*小时|动态/)) {
-    add(scores, evidence, "DYN", 5, "生物标志物动态", p7.slice(0, 80));
-  }
-  if (has(p7, /出血|造影剂|肾病|休克/)) {
-    add(scores, evidence, "DYN", 5, "并发症预警", p7.slice(0, 80));
-  }
-
-  if (has(p8, /指南|共识/) && has(p8, /ESC|AHA|ACC|2023|20\d{2}|中国/i)) {
-    add(scores, evidence, "EBM", 2, "引用指南名称与年份", p8.slice(0, 80));
-  }
-  if (has(p8, /90|D2B|D1B|时间目标|时间窗/i)) {
-    add(scores, evidence, "EBM", 2, "复述关键时间目标", p8.slice(0, 80));
-  }
-  if (has(p8, /PCI|优先|溶栓|因为|依据/i)) {
-    add(scores, evidence, "EBM", 1, "策略依据", p8.slice(0, 80));
-  }
-
-  scoreClinicalEvents(scores, evidence, state);
 }
 
-function scoreClinicalEvents(
+function scoreDiaFromWorkup(
   scores: ScoreDimensions,
   evidence: ScoreEvidence[],
-  state: SessionState
+  state: SessionState,
+  qaNodes: QaNode[],
+  caseConfig?: CaseConfig | null
 ) {
-  for (const log of state.eventLog || []) {
+  const blob = examBlob(state, caseConfig);
+  const unlocked = new Set(state.unlockedQaIds);
+
+  if (isStemiCase(caseConfig)) {
+    if (/ecg|心电图|e1/i.test(blob)) {
+      add(scores, evidence, "DIA", 8, "完成心电图评估", "已开立心电图");
+    }
+    if (/troponin|肌钙|l1/i.test(blob)) {
+      add(scores, evidence, "DIA", 6, "完成心肌损伤标志物", "已开立肌钙蛋白相关检查");
+    }
+    if (/d-?dimer|d二聚|肺栓塞|cta|夹层/i.test(blob)) {
+      add(scores, evidence, "DIA", 3, "完成高危鉴别相关检查", "已开立排查夹层/PE 相关检查");
+    }
+    const hitBuckets = new Set<string>();
+    for (const node of qaNodes) {
+      if (unlocked.has(node.id)) hitBuckets.add(bucket(node));
+    }
+    let qaDia = 0;
+    for (const name of ["radiate", "pmh", "family", "assoc"] as const) {
+      if (hitBuckets.has(name)) qaDia += 1;
+    }
+    if (qaDia >= 2) {
+      add(
+        scores,
+        evidence,
+        "DIA",
+        3,
+        "问诊支持鉴别诊断",
+        `已覆盖 ${qaDia} 类关键病史信息`
+      );
+    }
+    return;
+  }
+
+  const hints = caseConfig?.scoringHints;
+  const dxKeys = hints?.diagnosisKeywords || [];
+  const qaText = qaNodes
+    .filter((n) => unlocked.has(n.id))
+    .map((n) => `${n.category} ${n.answer || ""} ${(n.intents || []).join(" ")}`)
+    .join(" ");
+  let diaHit = 0;
+  for (const kw of dxKeys) {
+    if (kw && (qaText.includes(kw) || blob.includes(kw))) {
+      diaHit += 1;
+      add(scores, evidence, "DIA", 4, `鉴别相关：${kw}`, kw);
+      if (diaHit >= 4) break;
+    }
+  }
+  if (diaHit === 0 && state.examsOrdered.length >= 2) {
+    add(scores, evidence, "DIA", 8, "已做多项辅助检查支持鉴别", `开立 ${state.examsOrdered.length} 项`);
+  }
+  if ((state.physicalKeys || []).length >= 2) {
+    add(scores, evidence, "DIA", 4, "查体信息支持鉴别", `查体 ${state.physicalKeys.length} 项`);
+  }
+}
+
+function scoreManDynFromEvents(
+  scores: ScoreDimensions,
+  evidence: ScoreEvidence[],
+  state: SessionState,
+  caseConfig?: CaseConfig | null
+) {
+  const events = caseConfig?.clinicalEvents || [];
+  const logs = state.eventLog || [];
+  const medHints = caseConfig?.scoringHints?.essentialMedNames || [];
+  const stratHints = caseConfig?.scoringHints?.recommendedStrategies || [];
+
+  for (const log of logs) {
     if (log.avoided) {
-      add(scores, evidence, "DYN", 3, "及时处置避开恶化", `事件 ${log.eventId} 未触发`);
+      add(scores, evidence, "DYN", 3, "及时处置避开恶化", `事件 ${log.eventId}`);
       continue;
     }
     if (log.allCorrect) {
       add(
         scores,
         evidence,
-        "DYN",
+        "MAN",
         5,
         "病情变化处置正确",
         `${log.eventId} ${log.correctCount}/${log.totalCorrect}`
       );
+      add(scores, evidence, "DYN", 2, "动态处置完成", log.eventId);
     } else if (log.correctCount > 0) {
+      add(
+        scores,
+        evidence,
+        "MAN",
+        2,
+        "病情变化部分处置",
+        `${log.eventId} ${log.correctCount}/${log.totalCorrect}`
+      );
+      add(scores, evidence, "DYN", 1, "动态处置部分完成", log.eventId);
+    }
+
+    const ev = events.find((e) => e.id === log.eventId);
+    if (!ev) continue;
+    const selectedText = ev.options
+      .filter((o) => log.selectedOptionIds.includes(o.id))
+      .map((o) => o.text)
+      .join(" ");
+    for (const med of medHints) {
+      const token = med.replace(/[（(].*$/, "").slice(0, 4);
+      if (token && selectedText.includes(token)) {
+        add(scores, evidence, "MAN", 2, `处置含关键用药：${token}`, selectedText.slice(0, 60));
+      }
+    }
+    for (const s of stratHints) {
+      const token = s.slice(0, 4);
+      if (token && selectedText.includes(token)) {
+        add(scores, evidence, "MAN", 2, `处置含关键策略：${token}`, selectedText.slice(0, 60));
+        break;
+      }
+    }
+  }
+
+  if (events.length > 0) {
+    const handled = logs.filter((l) =>
+      events.some((e) => e.id === l.eventId)
+    ).length;
+    const ratio = handled / events.length;
+    if (ratio >= 1) {
+      add(
+        scores,
+        evidence,
+        "DYN",
+        4,
+        "完成全部病情波观察处置",
+        `${handled}/${events.length}`
+      );
+    } else if (ratio >= 0.5) {
       add(
         scores,
         evidence,
         "DYN",
         2,
-        "病情变化部分处置",
-        `${log.eventId} ${log.correctCount}/${log.totalCorrect}`
+        "完成半数以上病情波",
+        `${handled}/${events.length}`
       );
     }
+  } else if ((state.physicalKeys || []).length > 0 && state.examsOrdered.length > 0) {
+    add(scores, evidence, "DYN", 5, "查体与检查闭环推进", "无配置病情波，以操作闭环计分");
   }
 }
 
+function scoreEbmFromPractice(
+  scores: ScoreDimensions,
+  evidence: ScoreEvidence[],
+  state: SessionState,
+  caseConfig?: CaseConfig | null
+) {
+  const ecg = findEcgOrder(state);
+  const logs = state.eventLog || [];
+  const events = caseConfig?.clinicalEvents || [];
+  const allEventsOk =
+    events.length > 0 &&
+    logs.length >= events.length &&
+    logs.every((l) => l.allCorrect || l.avoided);
+
+  if (isStemiCase(caseConfig) && ecg && ecg.orderedAtMinute <= 10) {
+    add(scores, evidence, "EBM", 3, "符合指南心电图时间窗", `T+${ecg.orderedAtMinute}`);
+  } else if (!isStemiCase(caseConfig) && state.examsOrdered.some((e) => e.orderedAtMinute <= 15)) {
+    add(scores, evidence, "EBM", 3, "符合早期关键检查原则", "15 分钟内启动检查");
+  }
+
+  if (allEventsOk) {
+    add(scores, evidence, "EBM", 2, "病情处置符合急危重症处理原则", `完成 ${events.length} 波正确处置`);
+  } else if (logs.some((l) => l.allCorrect)) {
+    add(scores, evidence, "EBM", 1, "部分处置符合规范", "至少一波处置全对");
+  }
+}
+
+/** STEMI：问诊 + 检查时机/项目 + 病情处置（不再依赖 P1–P8 文本） */
+function scoreStemi(
+  scores: ScoreDimensions,
+  evidence: ScoreEvidence[],
+  state: SessionState,
+  qaNodes: QaNode[],
+  caseConfig?: CaseConfig | null
+) {
+  scoreTriFromWorkup(scores, evidence, state, caseConfig);
+  scoreInfFromQa(scores, evidence, state, qaNodes);
+  scoreDiaFromWorkup(scores, evidence, state, qaNodes, caseConfig);
+  scoreManDynFromEvents(scores, evidence, state, caseConfig);
+  scoreEbmFromPractice(scores, evidence, state, caseConfig);
+}
+
+/** 通用病例：问诊 + 检查 + 病情处置 + scoringHints */
 function scoreGeneric(
   scores: ScoreDimensions,
   evidence: ScoreEvidence[],
@@ -310,99 +450,14 @@ function scoreGeneric(
   qaNodes: QaNode[],
   caseConfig?: CaseConfig | null
 ) {
-  const hints = caseConfig?.scoringHints;
-  const p1 = state.decisions.P1?.reason || "";
-  const p2 = state.decisions.P2?.reason || "";
-  const p4 = state.decisions.P4?.reason || "";
-  const p5 = state.decisions.P5?.reason || "";
-  const p6 = state.decisions.P6?.reason || "";
-  const p7 = state.decisions.P7?.reason || "";
-  const p8 = state.decisions.P8?.reason || "";
-
-  if (p1 && has(p1, /I\s*级|Ⅱ级|II\s*级|III\s*级|Ⅲ级|一级|二级|三级|濒危|危急|急症/i)) {
-    add(scores, evidence, "TRI", 8, "P1 分诊分级", p1.slice(0, 80));
-  }
-  if (p1.length >= 10) {
-    add(scores, evidence, "TRI", 5, "P1 理由充分", p1.slice(0, 80));
-  }
-  if (p2.length >= 8) {
-    add(scores, evidence, "TRI", 6, "P2 关键检查时机", p2.slice(0, 80));
-  }
-  if (state.examsOrdered.some((e) => e.orderedAtMinute <= 15)) {
-    add(scores, evidence, "TRI", 6, "早期开立关键检查", "15 分钟内已有检查申请");
-  }
-
+  scoreTriFromWorkup(scores, evidence, state, caseConfig);
   scoreInfFromQa(scores, evidence, state, qaNodes);
-
-  const dxKeys = hints?.diagnosisKeywords?.length
-    ? hints.diagnosisKeywords
-    : [];
-  let diaHit = 0;
-  for (const kw of dxKeys) {
-    if (kw && p4.includes(kw)) {
-      diaHit += 1;
-      add(scores, evidence, "DIA", 4, `鉴别命中：${kw}`, p4.slice(0, 80));
-      if (diaHit >= 4) break;
-    }
-  }
-  if (diaHit === 0 && p4.length >= 20) {
-    add(scores, evidence, "DIA", 8, "鉴别诊断已书写", p4.slice(0, 80));
-  }
-  if (p4.length >= 40) {
-    add(scores, evidence, "DIA", 4, "鉴别较完整", p4.slice(0, 80));
-  }
-
-  const meds = hints?.essentialMedNames || [];
-  if (meds.length) {
-    let hit = 0;
-    for (const med of meds) {
-      const token = med.replace(/[（(].*$/, "").slice(0, 4);
-      if (token && p5.includes(token)) {
-        hit += 1;
-        add(scores, evidence, "MAN", 3, `用药：${token}`, p5.slice(0, 80));
-      }
-    }
-    if (hit === 0 && p5.length >= 12) {
-      add(scores, evidence, "MAN", 6, "已记录初始用药", p5.slice(0, 80));
-    }
-  } else if (p5.length >= 12) {
-    add(scores, evidence, "MAN", 10, "已记录初始用药", p5.slice(0, 80));
-  }
-
-  const strategies = hints?.recommendedStrategies || [];
-  let stratOk = false;
-  for (const s of strategies) {
-    const token = s.slice(0, 6);
-    if (token && p6.includes(token)) {
-      stratOk = true;
-      add(scores, evidence, "MAN", 8, `策略：${token}`, p6.slice(0, 80));
-      break;
-    }
-  }
-  if (!stratOk && p6.length >= 12) {
-    add(scores, evidence, "MAN", 6, "已记录关键处置策略", p6.slice(0, 80));
-  }
-
-  if (has(p7, /监测|复查|生命体征|每\s*\d+|动态|警惕|恶化|休克/)) {
-    add(scores, evidence, "DYN", 8, "动态监测计划", p7.slice(0, 80));
-  } else if (p7.length >= 10) {
-    add(scores, evidence, "DYN", 5, "已填写监测计划", p7.slice(0, 80));
-  }
-  if (has(p7, /并发症|出血|感染|肾功能|气道|灌注/)) {
-    add(scores, evidence, "DYN", 5, "并发症预警", p7.slice(0, 80));
-  }
-
-  if (has(p8, /指南|共识|推荐|依据/)) {
-    add(scores, evidence, "EBM", 3, "循证表达", p8.slice(0, 80));
-  }
-  if (has(p8, /20\d{2}|ESC|AHA|SCCM|surviving|卫健委|专家/i)) {
-    add(scores, evidence, "EBM", 2, "引用规范来源", p8.slice(0, 80));
-  }
-
-  scoreClinicalEvents(scores, evidence, state);
+  scoreDiaFromWorkup(scores, evidence, state, qaNodes, caseConfig);
+  scoreManDynFromEvents(scores, evidence, state, caseConfig);
+  scoreEbmFromPractice(scores, evidence, state, caseConfig);
 }
 
-/** 按规则重算六维分；STEMI 用验收细则，其他病例用 generic + scoringHints */
+/** 按规则重算六维分：问诊 + 检查 + 病情处置（不再依赖 P1–P8） */
 export function recomputeScores(
   state: SessionState,
   qaNodes: QaNode[] = [],
@@ -411,7 +466,7 @@ export function recomputeScores(
   const scores = emptyScores();
   const evidence: ScoreEvidence[] = [];
   if (isStemiCase(caseConfig)) {
-    scoreStemi(scores, evidence, state, qaNodes);
+    scoreStemi(scores, evidence, state, qaNodes, caseConfig);
   } else {
     scoreGeneric(scores, evidence, state, qaNodes, caseConfig);
   }
@@ -422,38 +477,33 @@ export function determineBranch(
   state: SessionState,
   caseConfig?: CaseConfig | null
 ): BranchPath {
-  const p2 = state.decisions.P2;
-  const p5 = state.decisions.P5?.reason || "";
-  const p6 = state.decisions.P6?.reason || "";
   const ids = state.examsOrdered.map((e) => e.examId.toLowerCase());
+  const logs = state.eventLog || [];
+  const events = caseConfig?.clinicalEvents || [];
+  const eventOkRatio =
+    events.length === 0
+      ? 1
+      : logs.filter((l) => l.allCorrect || l.avoided).length / events.length;
 
   if (isStemiCase(caseConfig)) {
-    const ecg = state.examsOrdered.find(
-      (e) => e.examId.toLowerCase().includes("ecg") || e.examId === "e1"
-    );
-    const p2OnTime =
-      Boolean(p2 && p2.atMinute <= 10) &&
-      Boolean(ecg && ecg.orderedAtMinute <= 10);
-    const medError = has(p5, /华法林|warfarin/i);
+    const ecg = findEcgOrder(state);
+    const ecgOnTime = Boolean(ecg && ecg.orderedAtMinute <= 10);
     const overChecking =
       ids.some((id) => id.includes("cta") || id.includes("ct_angio")) ||
       (ids.some((id) => id.includes("cxr") || id.includes("x线") || id.includes("e4")) &&
-        ids.some((id) => id.includes("troponin") || id.includes("l1")));
-    const p6Ok = has(p6, /PCI|介入|溶栓/i);
-    if (!p2OnTime || medError) return "B";
+        ids.some((id) => id.includes("troponin") || id.includes("l1")) &&
+        ids.length >= 5);
+    if (!ecg || !ecgOnTime) return "B";
     if (overChecking) return "C";
-    if (!p6Ok) return "D";
-    return "A";
+    if (eventOkRatio >= 0.5 && state.unlockedQaIds.length >= 4) return "A";
+    return "D";
   }
 
-  // 通用分支：关键决策是否齐全、是否明显延误、是否堆砌检查
-  const hasP1 = Boolean(state.decisions.P1);
-  const hasP6 = Boolean(state.decisions.P6) && p6.length >= 8;
-  const lateKey = state.examsOrdered.some((e) => e.orderedAtMinute > 30) && !hasP6;
+  const earlyExam = state.examsOrdered.some((e) => e.orderedAtMinute <= 15);
   const overChecking = state.examsOrdered.length >= 8;
-  if (lateKey || (hasP1 && !state.decisions.P2 && state.simMinutes > 25)) return "B";
+  if (!earlyExam && state.simMinutes > 20) return "B";
   if (overChecking) return "C";
-  if (hasP1 && hasP6) return "A";
+  if (earlyExam && state.unlockedQaIds.length >= 3 && eventOkRatio >= 0.5) return "A";
   return "D";
 }
 
@@ -469,38 +519,51 @@ export function buildDimComments(state: SessionState): Record<keyof ScoreDimensi
   const s = state.scores;
   return {
     TRI: [
-      rules.has("P1 分级正确") ? "分诊正确" : "分诊分级未达标",
-      rules.has("首份心电图在 10 分钟内开立")
-        ? "心电图时机达标"
-        : "首份心电图未在 10 分钟内完成",
-      rules.has("延误原因已记录") ? "已记录延误原因" : "未记录延误原因",
+      rules.has("首份心电图在 10 分钟内开立") || rules.has("关键检查较早开立")
+        ? "关键检查时机较好"
+        : "关键检查时机不足",
+      rules.has("早期开立检查") ? "已早期启动检查" : "未早期启动检查",
+      rules.has("已开始系统查体") ? "已开始查体" : "查体不足",
     ].join("；"),
     INF: [
       s.INF >= 15 ? "问诊较充分" : "问诊覆盖不足",
-      rules.has("社会史") ? "已含社会史" : "遗漏社会史（烟酒）",
-      rules.has("安全史") ? "已含安全史" : "遗漏过敏/用药安全史",
+      rules.has("社会史") ? "已含社会史" : "可补社会史",
+      rules.has("安全史") ? "已含安全史" : "可补过敏/用药史",
     ].join("；"),
     DIA: [
-      rules.has("首位诊断为 STEMI") ? "首位诊断到位" : "未明确 STEMI 首位",
-      rules.has("排查主动脉夹层") && rules.has("排查肺栓塞")
-        ? "高危鉴别到位"
-        : "高危鉴别（夹层/PE）不完整",
-      rules.has("鉴别胆绞痛") && rules.has("鉴别胃食管反流")
-        ? "非心源性胸痛已覆盖"
-        : "未覆盖胆绞痛与胃食管反流",
+      rules.has("完成心电图评估") || s.DIA >= 12 ? "鉴别相关检查较到位" : "鉴别相关检查不足",
+      rules.has("完成心肌损伤标志物") || [...rules].some((r) => r.startsWith("鉴别相关"))
+        ? "关键鉴别信息较完整"
+        : "关键鉴别信息不足",
+      rules.has("问诊支持鉴别诊断") ? "问诊支持鉴别" : "问诊对鉴别支持有限",
     ].join("；"),
     MAN: [
-      rules.has("抗栓药物") ? "抗栓方案基本正确" : "抗栓药物不全或错误",
-      rules.has("再灌注策略") ? "再灌注策略合理" : "再灌注策略需加强",
+      [...rules].some((r) => r.includes("病情变化处置正确"))
+        ? "病情处置正确"
+        : [...rules].some((r) => r.includes("部分处置"))
+          ? "病情处置部分正确"
+          : "病情处置不足",
+      [...rules].some((r) => r.includes("关键用药") || r.includes("关键策略"))
+        ? "处置含关键用药/策略"
+        : "可加强关键用药与策略选择",
     ].join("；"),
     DYN: [
-      rules.has("术前监测频率") ? "术前监测齐全" : "术前监测频率不足",
-      rules.has("生物标志物动态") ? "标志物动态计划到位" : "生物标志物动态不足",
-      rules.has("并发症预警") ? "含并发症预警" : "未含出血/造影剂肾病预警",
+      rules.has("完成全部病情波观察处置")
+        ? "病程观察完整"
+        : rules.has("完成半数以上病情波")
+          ? "病程观察过半"
+          : "病程观察不足",
+      [...rules].some((r) => r.includes("动态处置"))
+        ? "动态处置有回应"
+        : "动态处置回应不足",
     ].join("；"),
     EBM: [
-      rules.has("引用指南名称与年份") ? "指南引用规范" : "指南名称/年份缺失",
-      rules.has("复述关键时间目标") ? "时间目标复述正确" : "未复述 D1B/90 分钟目标",
+      rules.has("符合指南心电图时间窗") || rules.has("符合早期关键检查原则")
+        ? "时间窗行为符合规范"
+        : "时间窗行为需加强",
+      rules.has("病情处置符合急危重症处理原则")
+        ? "处置原则落实较好"
+        : "处置原则落实不足",
     ].join("；"),
   };
 }
@@ -508,14 +571,15 @@ export function buildDimComments(state: SessionState): Record<keyof ScoreDimensi
 export function buildRecommendedModules(state: SessionState): string[] {
   const tips: string[] = [];
   const rules = new Set(state.scoreEvidence.map((e) => e.rule));
-  if (!rules.has("首位诊断为 STEMI") || !rules.has("鉴别胃食管反流")) {
-    tips.push(RECOMMENDED_MODULES[0]);
-  }
-  if (!rules.has("P1 分级正确") || !rules.has("首份心电图在 10 分钟内开立")) {
+  if (state.scores.DIA < 12) tips.push(RECOMMENDED_MODULES[0]);
+  if (
+    !rules.has("首份心电图在 10 分钟内开立") &&
+    !rules.has("关键检查较早开立")
+  ) {
     tips.push(RECOMMENDED_MODULES[1]);
   }
-  if (state.scores.DIA < 15) tips.push(RECOMMENDED_MODULES[2]);
-  if (state.scores.DYN < 10 || state.scores.MAN < 16) {
+  if (state.scores.INF < 12) tips.push(RECOMMENDED_MODULES[2]);
+  if (state.scores.DYN < 8 || state.scores.MAN < 10) {
     tips.push(RECOMMENDED_MODULES[3]);
   }
   const uniq = [...new Set(tips)];
@@ -529,16 +593,6 @@ export function buildRecommendedModules(state: SessionState): string[] {
 }
 
 export function buildTimeline(state: SessionState) {
-  const NODE_NAME: Record<string, string> = {
-    P1: "分诊分级",
-    P2: "心电图时间窗",
-    P3: "病史完整性",
-    P4: "鉴别诊断",
-    P5: "初始药物治疗",
-    P6: "再灌注决策",
-    P7: "动态监测",
-    P8: "循证表达",
-  };
   const items: Array<{
     atMinute: number;
     nodeId: string;
@@ -547,47 +601,45 @@ export function buildTimeline(state: SessionState) {
     note: string;
   }> = [];
 
-  const ecg = state.examsOrdered.find((e) => e.examId.toLowerCase() === "ecg");
-  if (ecg) {
+  for (const exam of state.examsOrdered) {
+    const isEcg =
+      exam.examId.toLowerCase().includes("ecg") ||
+      exam.examId.toLowerCase() === "e1";
     items.push({
-      atMinute: ecg.orderedAtMinute,
-      nodeId: "ECG",
-      label: "开立首份心电图",
-      ok: ecg.orderedAtMinute <= 10,
-      note: ecg.orderedAtMinute <= 10 ? "时间窗内" : "超时（>10 min）",
+      atMinute: exam.orderedAtMinute,
+      nodeId: exam.examId.toUpperCase(),
+      label: isEcg ? "开立首份心电图" : `开立检查 ${exam.examId}`,
+      ok: !isEcg || exam.orderedAtMinute <= 10,
+      note: isEcg
+        ? exam.orderedAtMinute <= 10
+          ? "时间窗内"
+          : "超时（>10 min）"
+        : "已开立",
     });
   }
 
-  for (const id of ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8"] as const) {
-    const d = state.decisions[id];
-    if (!d) continue;
-    let ok = true;
-    let note = "已完成";
-    if (id === "P2" && d.atMinute > 10) {
-      ok = false;
-      note = "决策记录超时";
-    }
+  for (const log of state.eventLog || []) {
     items.push({
-      atMinute: d.atMinute,
-      nodeId: id,
-      label: NODE_NAME[id] || id,
-      ok,
-      note,
+      atMinute: log.resolvedAt ?? log.triggeredAt,
+      nodeId: log.eventId,
+      label: "病情变化处置",
+      ok: Boolean(log.allCorrect || log.avoided),
+      note: log.avoided
+        ? "已避开恶化"
+        : log.allCorrect
+          ? "处置正确"
+          : `部分正确 ${log.correctCount}/${log.totalCorrect}`,
     });
   }
 
   return items.sort((a, b) => a.atMinute - b.atMinute || a.nodeId.localeCompare(b.nodeId));
 }
 
-/** 是否应提示心电图时间窗超时（FAT-02） */
+/** 是否应提示心电图时间窗超时 */
 export function ecgTimeoutWarning(state: SessionState): string | null {
-  const ecg = state.examsOrdered.find((e) => e.examId.toLowerCase() === "ecg");
+  const ecg = findEcgOrder(state);
   if (ecg && ecg.orderedAtMinute > 10) {
-    return `超时警告：首份心电图于 T+${ecg.orderedAtMinute} 开立，超过 FMC-to-ECG ≤10 分钟要求，INF/TRI 将扣分并可能进入延误结局。`;
-  }
-  const p2 = state.decisions.P2;
-  if (p2 && p2.atMinute > 10) {
-    return `超时警告：P2 心电图决策记录于 T+${p2.atMinute}，超过 10 分钟时间窗。`;
+    return `超时警告：首份心电图于 T+${ecg.orderedAtMinute} 开立，超过 ≤10 分钟要求，TRI 将受影响并可能进入延误结局。`;
   }
   if (!ecg && state.simMinutes > 10) {
     return `超时提醒：模拟时钟已到 T+${state.simMinutes}，仍未开立首份心电图（目标 ≤10 分钟）。`;
@@ -605,25 +657,22 @@ export function buildSuggestions(state: SessionState, caseConfig?: CaseConfig | 
     if (![...rules].some((r) => r.startsWith("问诊覆盖")) && !rules.has("问诊覆盖度")) {
       tips.push("补全问诊，尤其不要漏掉社会史（吸烟）和过敏用药。");
     }
-    if (![...rules].some((r) => r.includes("首位诊断") || r.includes("鉴别命中"))) {
-      tips.push("鉴别诊断写明 STEMI，并覆盖夹层、肺栓塞和胃食管反流、胆绞痛。");
+    if (!rules.has("完成心肌损伤标志物") && !rules.has("完成心电图评估")) {
+      tips.push("完善心电图与肌钙蛋白等鉴别相关检查。");
     }
-    if (!rules.has("抗栓药物") || !rules.has("再灌注策略")) {
-      tips.push("写清阿司匹林、替格瑞洛、肝素，以及为何优先 PCI。");
+    if (![...rules].some((r) => r.includes("病情变化处置正确"))) {
+      tips.push("在检查页完成继续观察，并正确处置每一波病情变化。");
     }
-    if (!rules.has("并发症预警")) {
-      tips.push("监测计划加上出血和造影剂肾病。");
-    }
-    if (!rules.has("引用指南名称与年份") && !rules.has("循证表达")) {
-      tips.push("循证表达需写出指南名称、年份和 D2B < 90 分钟。");
+    if (!rules.has("符合指南心电图时间窗")) {
+      tips.push("按指南时间窗行动：先关键检查，再动态观察处置。");
     }
   } else {
-    if (state.scores.TRI < 15) tips.push("尽早完成分诊分级，并优先开立对本病最关键的检查。");
+    if (state.scores.TRI < 15) tips.push("尽早开立对本病最关键的检查，并完成必要查体。");
     if (state.scores.INF < 12) tips.push("继续问诊，提高病史覆盖度。");
-    if (state.scores.DIA < 12) tips.push("鉴别诊断写清首位诊断与主要鉴别项。");
-    if (state.scores.MAN < 12) tips.push("补全关键药物与处置策略，对照病例提示核对。");
-    if (state.scores.DYN < 8) tips.push("写明动态监测计划与可能的病情恶化预警。");
-    if (state.scores.EBM < 3) tips.push("循证表达中引用指南/共识名称与关键目标。");
+    if (state.scores.DIA < 12) tips.push("围绕鉴别需要选择检查与查体，避免盲目堆砌。");
+    if (state.scores.MAN < 12) tips.push("病情变化出现时，按急危重症原则选对处置选项。");
+    if (state.scores.DYN < 8) tips.push("用「继续观察」走完病程，及时处理每一波病情变化。");
+    if (state.scores.EBM < 3) tips.push("关键检查要尽早，处置选项要对齐规范做法。");
   }
   return tips.slice(0, 4);
 }
@@ -644,7 +693,6 @@ export function buildDebrief(state: SessionState, caseConfig?: CaseConfig | null
   const pathComparison = caseConfig
     ? buildPathComparison(state, caseConfig)
     : [];
-  const nodeReviews = caseConfig ? buildNodeReviews(state, caseConfig) : [];
   return {
     scores: state.scores,
     max: SCORE_MAX,
@@ -657,7 +705,7 @@ export function buildDebrief(state: SessionState, caseConfig?: CaseConfig | null
     recommendedModules,
     timeline: buildTimeline(state),
     pathComparison,
-    nodeReviews,
+    nodeReviews: [],
   };
 }
 
